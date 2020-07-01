@@ -3,10 +3,10 @@ from setuptools import setup
 setup(name='pylenm',
       version='0.1',
       description='Python functions for Analyzing Historical Groundwater Datasets',
-      url='http://github.com/',
+      url='https://github.com/AurelienMeray/pylenm',
       author='Aurelien Meray',
       author_email='aurelien.meray@gmail.com',
-      license='LBNL',
+      license='MIT',
       packages=[],
        install_requires=[
           'markdown',
