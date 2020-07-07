@@ -10,12 +10,13 @@ import random
 import datetime
 import matplotlib.dates as mdates
 from matplotlib.dates import date2num, num2date
-#get_ipython().run_line_magic('matplotlib', 'inline')
+import seaborn as sns
 from sklearn import preprocessing
 pd.set_option('display.max_columns', None) # to view all columns
 from scipy.optimize import curve_fit
 from supersmoother import SuperSmoother
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 import scipy.stats as stats
 import warnings
 warnings.filterwarnings("ignore")
@@ -51,7 +52,6 @@ def get_MCL(analyte_name):
     return mcl_dictionary[analyte_name]
 
 
-# In[4]:
 
 
 # Description:
@@ -729,3 +729,206 @@ def plot_MCL(data, well_name, analyte_name, year_interval=5, save_dir='plot_MCL'
         except:
             print('ERROR: Something went wrong')
             return None
+
+
+
+# Description: 
+#    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. Only uses the 6 important analytes.
+# Parameters:
+#    data: data to be processed
+#    date: date to be analyzed
+#    min_samples: minimum number of samples the result should contain in order to execute.
+#    show_labels: boolean(True or False) choose whether or not to show the name of the wells.
+#    save_dir: name of the directory you want to save the plot to
+def plot_PCA_by_date(data, date, min_samples=48, show_labels=True, save_dir='plot_PCA_by_date'):
+    def plotUpperHalf(*args, **kwargs):
+        corr_r = args[0].corr(args[1], 'pearson')
+        corr_text = f"{corr_r:2.2f}"
+        ax = plt.gca()
+        ax.set_axis_off()
+        marker_size = abs(corr_r) * 10000
+        ax.scatter([.5], [.5], marker_size, [corr_r], alpha=0.6, cmap="coolwarm",
+                   vmin=-1, vmax=1, transform=ax.transAxes)
+        font_size = abs(corr_r) * 40 + 5
+        ax.annotate(corr_text, [.5, .48,],  xycoords="axes fraction",
+                    ha='center', va='center', fontsize=font_size, fontweight='bold')
+    query = data[data.COLLECTION_DATE == date]
+    a = list(np.unique(query.ANALYTE_NAME.values))
+    b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
+    analytes = custom_analyte_sort(list(set(a) and set(b)))
+    query = query.loc[query.ANALYTE_NAME.isin(analytes)]
+    
+    if(query.shape[0] == 0):
+        return 'ERROR: {} has no data for the 6 analytes.'.format(date)
+    samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
+    if(samples < min_samples):
+        return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
+    if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
+        return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
+    else:
+        analytes = custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+        piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+        scaler = StandardScaler()
+        X = scaler.fit_transform(piv.dropna())
+        pca = PCA(n_components=2)
+        x_new = pca.fit_transform(X)
+        
+        fig, ax = plt.subplots(figsize=(10,10))
+        ax = plt.axes()
+        
+        small_fontSize = 15
+        large_fontSize = 20
+        plt.rc('axes', titlesize=large_fontSize)
+        plt.rc('axes', labelsize=large_fontSize)
+        plt.rc('legend', fontsize=small_fontSize)
+        plt.rc('xtick', labelsize=small_fontSize)
+        plt.rc('ytick', labelsize=small_fontSize) 
+        
+        def myplot(score,coeff,labels=None):
+            xs = score[:,0]
+            ys = score[:,1]
+            n = coeff.shape[0]
+            scalex = 1.0/(xs.max() - xs.min())
+            scaley = 1.0/(ys.max() - ys.min())
+            scatt_X = xs * scalex
+            scatt_Y = ys * scaley
+            scatter = plt.scatter(scatt_X, scatt_Y, alpha=0.8, label='Wells')
+
+            for i in range(n):
+                arrow = plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'r', alpha = 0.9, head_width=0.05, head_length=0.05, label='Loadings')
+                if labels is None:
+                    plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
+                else:
+                    plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'g', ha = 'center', va = 'bottom')
+            
+            if(show_labels):
+                for x_pos, y_pos, label in zip(scatt_X, scatt_Y, piv.dropna().index):
+                    ax.annotate(label, # The label for this point
+                    xy=(x_pos, y_pos), # Position of the corresponding point
+                    xytext=(7, 0),     # Offset text by 7 points to the right
+                    textcoords='offset points', # tell it to use offset points
+                    ha='left',         # Horizontally aligned to the left
+                    va='center',       # Vertical alignment is centered
+                    color='black', alpha=0.8)
+            plt.legend( [scatter, arrow], ['Wells', 'Loadings'])
+
+        samples = x_new.shape[0]*piv.shape[1]
+        props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
+        ax.text(1.1, 0.5, 'Date:  {}\n\nSamples:          {}\nWells:               {}'.format(date, samples, x_new.shape[0]), 
+                    transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+        
+        plt.xlim(-1,1)
+        plt.ylim(-1,1)
+        plt.xlabel("PC{}".format(1))
+        plt.ylabel("PC{}".format(2))
+        ax.set_title('PCA Biplot - ' + date, fontweight='bold')
+        plt.grid(alpha=0.5)
+        
+        #Call the function. Use only the 2 PCs.
+        myplot(x_new[:,0:2],np.transpose(pca.components_[0:2, :]), labels=piv.columns)
+        plt.show()
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        fig.savefig(save_dir + '/' + 'PCA Biplot - '+ date +'.png', bbox_inches="tight")
+
+
+
+# Description: 
+#    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. Only uses the 6 important analytes.
+# Parameters:
+#    data: data to be processed
+#    Year: (Int) date to be analyzed
+#    min_samples: minimum number of samples the result should contain in order to execute.
+#    show_labels: boolean(True or False) choose whether or not to show the name of the wells.
+#    save_dir: name of the directory you want to save the plot to
+def plot_PCA_by_year(data, year, min_samples=48, show_labels=True, save_dir='plot_PCA_by_year'):
+    def plotUpperHalf(*args, **kwargs):
+        corr_r = args[0].corr(args[1], 'pearson')
+        corr_text = f"{corr_r:2.2f}"
+        ax = plt.gca()
+        ax.set_axis_off()
+        marker_size = abs(corr_r) * 10000
+        ax.scatter([.5], [.5], marker_size, [corr_r], alpha=0.6, cmap="coolwarm",
+                   vmin=-1, vmax=1, transform=ax.transAxes)
+        font_size = abs(corr_r) * 40 + 5
+        ax.annotate(corr_text, [.5, .48,],  xycoords="axes fraction",
+                    ha='center', va='center', fontsize=font_size, fontweight='bold')
+    query = data
+    query.COLLECTION_DATE = pd.to_datetime(query.COLLECTION_DATE)
+    query = query[query.COLLECTION_DATE.dt.year == year]
+    a = list(np.unique(query.ANALYTE_NAME.values))
+    b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
+    analytes = custom_analyte_sort(list(set(a) and set(b)))
+    query = query.loc[query.ANALYTE_NAME.isin(analytes)]
+    
+    if(query.shape[0] == 0):
+        return 'ERROR: {} has no data for the 6 analytes.'.format(year)
+    samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
+    if(samples < min_samples):
+        return 'ERROR: {} does not have at least {} samples.'.format(year, min_samples)
+    if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
+        return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(year)
+    else:
+        analytes = custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+        piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+        scaler = StandardScaler()
+        X = scaler.fit_transform(piv.dropna())
+        pca = PCA(n_components=2)
+        x_new = pca.fit_transform(X)
+        
+        fig, ax = plt.subplots(figsize=(15,15))
+        ax = plt.axes()
+        
+        small_fontSize = 15
+        large_fontSize = 20
+        plt.rc('axes', titlesize=large_fontSize)
+        plt.rc('axes', labelsize=large_fontSize)
+        plt.rc('legend', fontsize=small_fontSize)
+        plt.rc('xtick', labelsize=small_fontSize)
+        plt.rc('ytick', labelsize=small_fontSize) 
+        
+        def myplot(score,coeff,labels=None):
+            xs = score[:,0]
+            ys = score[:,1]
+            n = coeff.shape[0]
+            scalex = 1.0/(xs.max() - xs.min())
+            scaley = 1.0/(ys.max() - ys.min())
+            scatt_X = xs * scalex
+            scatt_Y = ys * scaley
+            scatter = plt.scatter(scatt_X, scatt_Y, alpha=0.8, label='Wells')
+            for i in range(n):
+                arrow = plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'r', alpha = 0.9, head_width=0.05, head_length=0.05)
+                if labels is None:
+                    plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
+                else:
+                    plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'g', ha = 'center', va = 'bottom')
+            
+            if(show_labels):
+                for x_pos, y_pos, label in zip(scatt_X, scatt_Y, piv.dropna().index):
+                    ax.annotate(label, # The label for this point
+                    xy=(x_pos, y_pos), # Position of the corresponding point
+                    xytext=(7, 0),     # Offset text by 7 points to the right
+                    textcoords='offset points', # tell it to use offset points
+                    ha='left',         # Horizontally aligned to the left
+                    va='center', color='black', alpha=0.8)       # Vertical alignment is centered
+            plt.legend( [scatter, arrow], ['Wells', 'Loadings'])
+
+        samples = x_new.shape[0]*piv.shape[1]    
+        props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
+        ax.text(1.1, 0.5, 'Date:  {}\n\nSamples:          {}\nWells:               {}'.format(year,samples, x_new.shape[0]), 
+                    transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+                 
+        plt.xlim(-1,1)
+        plt.ylim(-1,1)
+        plt.xlabel("PC{}".format(1))
+        plt.ylabel("PC{}".format(2))
+        ax.set_title('PCA Biplot - ' + str(year), fontweight='bold')
+        plt.grid(alpha=0.5)
+        
+        #Call the function. Use only the 2 PCs.
+        myplot(x_new[:,0:2],np.transpose(pca.components_[0:2, :]), labels=piv.columns)
+
+        plt.show()
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        fig.savefig(save_dir + '/' + 'PCA Biplot - '+ str(year) +'.png', bbox_inches="tight")
