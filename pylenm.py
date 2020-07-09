@@ -21,37 +21,46 @@ import scipy.stats as stats
 import warnings
 warnings.filterwarnings("ignore")
 
-
 # Description:
 #    Removes all columns except 'COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'.
-#    Saves the result as a csv file in the same directory as the original file.
+#    If the user specifies additional columns in addition to the ones listed above, those columns will be kept.
+#    The function returns a dataframe and has an optional parameter to be able to save the dataframe to a csv file.
 # Parameters:
 #    dataPath: path of the dataset on the computer.
-def simplify_csv_Data(dataPath):
-    if(os.path.isfile(dataPath)==False):
-        print('ERROR: "', dataPath, '" does not exist.')
-    else:
-        data = pd.read_csv(dataPath)
+#    columns: list of any additional columns on top of  ['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'] to be kept in the dataframe.
+#    save_csv: Boolean value (True or False) to determine whether or not to save the dataframe to a csv file.
+#    file_name: name of the csv file you want to save
+#    save_dir: name of the directory you want to save the csv file to
+def _simplify_data(data, columns=None, save_csv=False, file_name= 'data_simplified', save_dir='data/'):
+    if(columns==None):
         sel_cols = ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']
-        data = data[sel_cols]
-        data.COLLECTION_DATE = pd.to_datetime(data.COLLECTION_DATE)
-        data = data.sort_values(by="COLLECTION_DATE")
-        dup = data[data.duplicated(['COLLECTION_DATE', 'STATION_ID','ANALYTE_NAME', 'RESULT'])]
-        data = data.drop(dup.index)
-        newPath = 'data/FASB_Data_thru_3Q2015.csv'
-        newPath = newPath.strip('.csv') + '_simplified' + '.csv'
-        data.to_csv(newPath, index=False)
-        if(os.path.isfile(newPath)):
-            print("File saved successfully!")
+    else:
+        hasColumns =  all(item in list(data.columns) for item in columns)
+        if(hasColumns):            
+            sel_cols = ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS'] + columns
         else:
-            print("ERROR: File not saved!")
+            print('ERROR: specified column(s) do not exist in the data')
+            return None
+        
+    data = data[sel_cols]
+    data.COLLECTION_DATE = pd.to_datetime(data.COLLECTION_DATE)
+    data = data.sort_values(by="COLLECTION_DATE")
+    dup = data[data.duplicated(['COLLECTION_DATE', 'STATION_ID','ANALYTE_NAME', 'RESULT'])]
+    data = data.drop(dup.index)
+    data = data.reset_index().drop('index', axis=1)
+    if(save_csv):
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        data.to_csv(save_dir + file_name + '.csv')
+        print('Successfully saved "' + file_name +'.csv" in ' + save_dir)
+    return data
 
 
 def get_MCL(analyte_name):
-    mcl_dictionary = {'TRITIUM': 1.3, 'URANIUM-238': 1.31,  'NITRATE-NITRITE AS NITROGEN': 1,  'TECHNETIUM-99': 2.95}
+    mcl_dictionary = {'TRITIUM': 1.3, 'URANIUM-238': 1.31,  'NITRATE-NITRITE AS NITROGEN': 1,
+                      'TECHNETIUM-99': 2.95, 'IODINE-129': 0, 'STRONTIUM-90': 0.9
+                     }
     return mcl_dictionary[analyte_name]
-
-
 
 
 # Description:
@@ -64,7 +73,6 @@ def get_unit(analyte_name):
     return unit_dictionary[analyte_name]
 
 
-
 # Description:
 #    Returns a csv file saved to save_dir with details pertaining to the specified analyte.
 #    Details include the well names, the date ranges and the number of unique samples.
@@ -74,6 +82,7 @@ def get_unit(analyte_name):
 #    save_dir: name of the directory you want to save the csv file to
 def get_analyte_details(data, analyte_name, save_dir='analyte_details'):
     data = data[data.ANALYTE_NAME == analyte_name].reset_index().drop('index', axis=1)
+    data = data[~data.RESULT.isna()]
     data = data.drop(['ANALYTE_NAME', 'RESULT', 'RESULT_UNITS'], axis=1)
     data.COLLECTION_DATE = pd.to_datetime(data.COLLECTION_DATE)
     
@@ -85,7 +94,7 @@ def get_analyte_details(data, analyte_name, save_dir='analyte_details'):
         endDate = current.COLLECTION_DATE.max().date()
         numSamples = current.duplicated().value_counts()[0]
         info.append({'Well Name': well, 'Start Date': startDate, 'End Date': endDate,
-                     'Date Range (days)':endDate-startDate ,
+                     'Date Range (days)': endDate-startDate ,
                      'Unique samples': numSamples})
         details = pd.DataFrame(info)
         details.index = details['Well Name']
@@ -98,6 +107,52 @@ def get_analyte_details(data, analyte_name, save_dir='analyte_details'):
     details.to_csv(save_dir + '/' + analyte_name + '_details.csv')
     return details
 
+# Description:
+#    Returns a dataframe with a summary of the data for certain analytes.
+#    Summary includes the date ranges and the number of unique samples and other statistics for the analyte results.
+# Parameters:
+#    data: data to be processed
+#    analytes: list of analyte names to be processed. If left empty, a list of all the analytes in the data will be used.
+#    sort_by: sorts the data by either the dates by entering: ‘date’, the samples by entering: ‘samples’, or by unique well locations by entering ‘wells’.
+#    ascending: boolean to sort in ascending order.
+def get_data_summary(data, analytes=None, sort_by='date', ascending=False):
+    if(analytes == None):
+        analytes = data.ANALYTE_NAME.unique()
+    data = data.loc[data.ANALYTE_NAME.isin(analytes)].drop(['RESULT_UNITS'], axis=1)
+    data = data[~data.duplicated()] # remove duplicates
+    data.COLLECTION_DATE = pd.to_datetime(data.COLLECTION_DATE)
+    data = data[~data.RESULT.isna()]
+    
+    info = []
+    for analyte_name in analytes:
+        query = data[data.ANALYTE_NAME == analyte_name]
+        startDate = min(query.COLLECTION_DATE)
+        endDate = max(query.COLLECTION_DATE)
+        numSamples = query.shape[0]
+        wellCount = len(query.STATION_ID.unique())
+        stats = query.RESULT.describe().drop('count', axis=0)
+        stats = pd.DataFrame(stats).T
+        stats_col = ['Result '+ x for x in stats.columns]
+
+        result = {'Analyte Name': analyte_name, 'Start Date': startDate, 'End Date': endDate,
+                     'Date Range (days)':endDate-startDate, 'Unique wells': wellCount,'Samples': numSamples,
+                     'Result unit': get_unit(analyte_name) }
+        for num in range(len(stats_col)):
+            result[stats_col[num]] = stats.iloc[0][num] 
+        
+        info.append(result)
+
+        details = pd.DataFrame(info)
+        details.index = details['Analyte Name']
+        details = details.drop('Analyte Name', axis=1)
+        if(sort_by.lower() == 'date'):
+            details = details.sort_values(by=['Start Date', 'End Date', 'Date Range (days)'], ascending=ascending)
+        elif(sort_by.lower() == 'samples'):
+            details = details.sort_values(by=['Samples'], ascending=ascending)
+        elif(sort_by.lower() == 'wells'):
+            details = details.sort_values(by=['Unique wells'], ascending=ascending)
+    
+    return details
 
 
 # Description: 
@@ -113,7 +168,6 @@ def query_data(data, well_name, analyte_name):
         return 0
     else:
         return query
-
 
 
 # Helper function for plot_correlation
@@ -273,6 +327,7 @@ def plot_all_data(data, log_transform=True, alpha=0, year_interval=2, plot_inlin
     print("Errors: ", errors)
 
 
+
 # Description: 
 #    Plots a heatmap of the correlations of the important analytes over time for a specified well.
 # Parameters:
@@ -334,6 +389,7 @@ def plot_correlation_heatmap(data, well_name, show_symmetry=True, color=True, sa
         fig.savefig(save_dir + '/' + well_name + '_correlation.png', bbox_inches="tight")
 
 
+
 # Description: 
 #    Plots a heatmap of the correlations of the important analytes over time for each well in the dataset.
 # Parameters:
@@ -349,6 +405,8 @@ def plot_all_correlation_heatmap(data, show_symmetry=True, color=True, save_dir=
                                  show_symmetry=show_symmetry,
                                  color=color,
                                  save_dir=save_dir)
+
+
 
 # Description: 
 #    Resamples the data based on the frequency specified and interpolates the values of the analytes.
@@ -456,6 +514,7 @@ def plot_corr_by_well(data, well_name, interpolate=False, frequency='2W', save_d
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         g.fig.savefig(save_dir + '/' + well_name + file_extension + '.png', bbox_inches="tight")
+
 
 
 # Description: 
@@ -594,7 +653,7 @@ def plot_corr_by_year(data, year, min_samples=500, save_dir='plot_corr_by_year')
             os.makedirs(save_dir)
         g.fig.savefig(save_dir + '/' + str(year) + '.png', bbox_inches="tight")
 
-        
+
 # Description: 
 #    Plots the linear regression line of data given the analyte_name and well_name. The plot includes the prediction where the line of best fit intersects with the Maximum Concentration Limit (MCL).
 # Parameters:
@@ -731,7 +790,6 @@ def plot_MCL(data, well_name, analyte_name, year_interval=5, save_dir='plot_MCL'
             return None
 
 
-
 # Description: 
 #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. Only uses the 6 important analytes.
 # Parameters:
@@ -830,7 +888,6 @@ def plot_PCA_by_date(data, date, min_samples=48, show_labels=True, save_dir='plo
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         fig.savefig(save_dir + '/' + 'PCA Biplot - '+ date +'.png', bbox_inches="tight")
-
 
 
 # Description: 
