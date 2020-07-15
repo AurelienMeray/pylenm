@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pylenm',
-      version='0.1.2',
+      version='0.1.3',
       description='Python functions for Analyzing Historical Groundwater Datasets',
       url='https://github.com/AurelienMeray/pylenm',
       author='Aurelien Meray',
