@@ -152,19 +152,20 @@ __usage['plot_all_corr_by_well'] = """
 {}Description:{} 
     Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
 {}Parameters:{}
+    {}well_name (string):{} name of the well to be processed
     {}interpolate (bool):{} choose whether or to interpolate the data
     {}frequency (string):{} {{‘D’, ‘W’, ‘M’, ‘Y’}} frequency to interpolate. 
     See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs.
     (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_corr_by_date'] = """
 {}plot_corr_by_date{} (date, min_samples=48, save_dir=‘plot_corr_by_date’)
 {}Description:{} 
     Plots the correlations with the physical plots as well as the correlations of the important 
     analytes for ALL the wells on a specified date.
-{}Parameters:v
+{}Parameters:
     {}date (string):{} date to be analyzed
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}save_dir (string):{} name of the directory you want to save the plot to
@@ -195,30 +196,49 @@ __usage['plot_MCL'] = """
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_date'] = """
-{}plot_PCA_by_date{} (date, min_samples=48, show_labels=True,
+{}plot_PCA_by_date{} (date, n_clusters=4, min_samples=48, show_labels=True,
                         save_dir=‘plot_corr_by_date’)
 {}Description:{} 
-    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. 
-    Only uses the 6 important analytes.
+    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset.
+    Only uses the 6 important analytes. The data is also clustered into n_clusters.
 {}Parameters:{}
     {}date (string):{} date to be analyzed
+    {}n_clusters (int):{} number of clusters to split the data into.
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_year'] = """
-{}plot_PCA_by_year{} (year, min_samples=48, show_labels=True,
-                    save_dir=‘plot_corr_by_year’)
+{}plot_PCA_by_year{} (year, n_clusters=4, min_samples=48, show_labels=True,
+                        save_dir=‘plot_corr_by_year’)
 {}Description:{} 
     Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. 
-    Only uses the 6 important analytes.
+    Only uses the 6 important analytes. The data is also clustered into n_clusters.
 {}Parameters:{}
     {}year (int):{} date to be analyzed
+    {}n_clusters (int):{} number of clusters to split the data into.
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['plot_PCA_by_well'] = """
+{}plot_PCA_by_well{} (well_name, interpolate=False, frequency='2W', min_samples=48,
+            show_labels=True, save_dir=‘plot_PCA_by_well’)
+{}Description:{} 
+    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a well_name in the dataset. 
+    Only uses the 6 important analytes.
+{}Parameters:{}
+    {}well_name (string):{} name of the well to be processed
+    {}interpolate (bool):{} choose whether or to interpolate the data
+    {}frequency (string):{} {{‘D’, ‘W’, ‘M’, ‘Y’}} frequency to interpolate. 
+        See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. 
+        (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
+    {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
+    {}show_labels (bool):{} choose whether or not to show the name of the wells.
+    {}save_dir (string):{} name of the directory you want to save the plot to
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 
 
