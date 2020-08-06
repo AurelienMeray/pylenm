@@ -35,7 +35,24 @@ __usage['get_unit'] = """
     Example: 'DEPTH_TO_WATER' returns 'ft'
 {}Parameters:{}
     {}analyte_name (string):{} name of the analyte to be processed
-""".format(bb, be, bb, be,bb, be,bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be)
+
+__usage['filter_wells'] = """
+{}filter_wells{} (units)
+{}Description:{}
+    Returns a list of the well names filtered by the unit(s) specified.
+{}Parameters:{}
+    {}units (list of strings):{}  Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+""".format(bb, be, bb, be, bb, be, bb, be)
+
+__usage['remove_outliers'] = """
+{}remove_outliers{} (data, z_threshold=4)
+{}Description:{}
+    Removes outliers from a dataframe based on the z_scores and returns the new dataframe.
+{}Parameters:{}
+    {}data (dataframe):{} data for the outliers to removed from
+    {}z_threshold (float):{} z_score threshold to eliminate.
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['get_analyte_details'] = """
 {}Description:{}
@@ -139,12 +156,14 @@ __usage['plot_corr_by_well'] = """
     Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
 {}Parameters:{}
     {}well_name (string):{} name of the well to be processed
-    {}interpolate (bool):{} choose whether or to interpolate the data
+    {}remove_outliers (bool):{} choose whether or to remove the outliers.
+    {}z_threshold (float):{} z_score threshold to eliminate outliers
+    {}interpolate (bool):{} choose whether or not to interpolate the data
     {}frequency (string):{} {{‘D’, ‘W’, ‘M’, ‘Y’}} frequency to interpolate. 
         See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. 
         (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_all_corr_by_well'] = """
 {}plot_all_corr_by_well{} (well_name, interpolate=False, frequency='2W',
@@ -152,13 +171,14 @@ __usage['plot_all_corr_by_well'] = """
 {}Description:{} 
     Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
 {}Parameters:{}
-    {}well_name (string):{} name of the well to be processed
-    {}interpolate (bool):{} choose whether or to interpolate the data
+    {}remove_outliers (bool):{} choose whether or to remove the outliers.
+    {}z_threshold (float):{} z_score threshold to eliminate outliers
+    {}interpolate (bool):{} choose whether or not to interpolate the data
     {}frequency (string):{} {{‘D’, ‘W’, ‘M’, ‘Y’}} frequency to interpolate. 
     See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs.
     (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_corr_by_date'] = """
 {}plot_corr_by_date{} (date, min_samples=48, save_dir=‘plot_corr_by_date’)
@@ -196,21 +216,26 @@ __usage['plot_MCL'] = """
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_date'] = """
-{}plot_PCA_by_date{} (date, n_clusters=4, min_samples=48, show_labels=True,
-                        save_dir=‘plot_corr_by_date’)
+{}plot_PCA_by_date{} (date, n_clusters=4, min_samples=48,
+                        filter=False, filter_well_by=['D'], return_clusters=False,
+                        show_labels=True, save_dir=‘plot_corr_by_date’)
 {}Description:{} 
     Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset.
     Only uses the 6 important analytes. The data is also clustered into n_clusters.
 {}Parameters:{}
     {}date (string):{} date to be analyzed
     {}n_clusters (int):{} number of clusters to split the data into.
+    {}filter (bool):{} Flag to indicate well filtering.
+    {}filter_well_by (list of strings):{} Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    {}return_clusters (bool):{} Flag to return the cluster data to be used for spatial plotting.
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_year'] = """
-{}plot_PCA_by_year{} (year, n_clusters=4, min_samples=48, show_labels=True,
+{}plot_PCA_by_year{} (year, n_clusters=4, min_samples=48, filter=False,
+                        filter_well_by=['D'], return_clusters=False, show_labels=True,
                         save_dir=‘plot_corr_by_year’)
 {}Description:{} 
     Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. 
@@ -218,10 +243,13 @@ __usage['plot_PCA_by_year'] = """
 {}Parameters:{}
     {}year (int):{} date to be analyzed
     {}n_clusters (int):{} number of clusters to split the data into.
+    {}filter (bool):{} Flag to indicate well filtering.
+    {}filter_well_by (list of strings):{} Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    {}return_clusters (bool):{} Flag to return the cluster data to be used for spatial plotting.
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_well'] = """
 {}plot_PCA_by_well{} (well_name, interpolate=False, frequency='2W', min_samples=48,
@@ -239,6 +267,17 @@ __usage['plot_PCA_by_well'] = """
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['plot_coordinates_to_map'] = """
+{}plot_coordinates_to_map{} (gps_data, center=[33.271459, -81.675873], zoom=14)
+{}Description:{} 
+    Plots the well locations on an interactive map given coordinates.
+{}Parameters:{}
+    {}gps_data (dataframe):{} Data frame with the following column names: station_id, latitude, longitude, color. 
+        If the color column is not passed, the default color will be blue.
+    {}center (list with 2 floats):{} latitude and longitude coordinates to center the map view.
+    {}zoom (int):{} value to determine the initial scale of the map
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 
 

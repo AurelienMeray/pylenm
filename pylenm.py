@@ -8,6 +8,7 @@ import pylab
 import scipy
 import random
 import datetime
+import re
 import matplotlib.dates as mdates
 from matplotlib.dates import date2num, num2date
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -22,9 +23,16 @@ from sklearn.cluster import KMeans
 import scipy.stats as stats
 import warnings
 warnings.filterwarnings("ignore")
+from ipyleaflet import Map 
+from ipyleaflet import basemaps 
+from pyproj import Proj
+from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON, 
+                        LayersControl, Icon, Marker,FullScreenControl,
+                        CircleMarker, Popup, AwesomeIcon) 
+from ipywidgets import HTML
 import pylenm_usages as usage
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 
 class functions:
@@ -32,37 +40,69 @@ class functions:
     def __init__(self, data):
         self.setData(data)
     
-    def __isValid(self, data):
+    def __isValid_Data(self, data):
         if(str(type(data)).lower().find('dataframe') == -1):
             return (False, 'Make sure the data is a pandas DataFrame.\n')
-        if(not self.__hasColumns(data)):
+        if(not self.__hasColumns_Data(data)):
+            return (False, 'Make sure that ALL of the columns specified in the REQUIREMENTS are present.\n')
+        else:
+            return (True, None)
+        
+    def __isValid_GPS(self, data):
+        if(str(type(data)).lower().find('dataframe') == -1):
+            return (False, 'Make sure the data is a pandas DataFrame.\n')
+        if(not self.__hasColumns_GPS(data)):
             return (False, 'Make sure that ALL of the columns specified in the REQUIREMENTS are present.\n')
         else:
             return (True, None)
     
-    def __hasColumns(self, data):
+    def __hasColumns_Data(self, data):
         find = ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']
         cols = list(data.columns)
         hasCols =  all(item in cols for item in find)
         return hasCols
     
+    def __hasColumns_GPS(self, data):
+        find = ['station_id', 'latitude', 'longitude']
+        cols = list(data.columns)
+        hasCols =  all(item in cols for item in find)
+        return hasCols
+    
     def setData(self, data):
-        validation = self.__isValid(data)
+        validation = self.__isValid_Data(data)
         if(validation[0]):
             self.data = data
             print('Successfully stored the data!\n')
 
         else:
             print('ERROR: {}'.format(validation[1]))
-            return self.REQUIREMENTS()
+            return self.REQUIREMENTS_DATA()
+    
+    def set_GPS_Data(self, GPS_Data):
+        validation = self.__isValid_GPS(GPS_Data)
+        if(validation[0]):
+            self.GPS_Data = GPS_Data
+            print('Successfully stored the GPS data!\n')
+
+        else:
+            print('ERROR: {}'.format(validation[1]))
+            return self.REQUIREMENTS_GPS()
+    
+    def getData(self):
+        return self.data
         
-    def REQUIREMENTS(self):
-        print('PYLENM REQUIREMENTS:\nThe imported data needs to meet ALL of the following conditions to have a successful import:')
+    def get_GPS_Data(self):
+        return self.GPS_Data
+        
+    def REQUIREMENTS_DATA(self):
+        print('PYLENM DATA REQUIREMENTS:\nThe imported data needs to meet ALL of the following conditions to have a successful import:')
         print('   1) Data should be a pandas dataframe.')
         print("   2) Data must have these column names (Case sensitive): \n      ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']")
         
-    def getData(self):
-        return self.data
+    def REQUIREMENTS_GPS(self):
+        print('PYLENM GPS REQUIREMENTS:\nThe imported gps data needs to meet ALL of the following conditions to have a successful import:')
+        print('   1) Data should be a pandas dataframe.')
+        print("   2) Data must have these column names (Case sensitive): \n      ['station_id', 'latitude', 'longitude']")
     
     # Helper function for plot_correlation
     # Sorts analytes in a specific order: 'TRITIUM', 'URANIUM-238','IODINE-129','SPECIFIC CONDUCTANCE', 'PH', 'DEPTH_TO_WATER'
@@ -142,6 +182,50 @@ class functions:
     def get_unit(self, analyte_name):
         unit_dictionary = {"1,1'-BIPHENYL": 'ug/L', '1,1,1,2-TETRACHLOROETHANE': 'ug/L', '1,1,1-TRICHLOROETHANE': 'ug/L', '1,1,2,2-TETRACHLOROETHANE': 'ug/L', '1,1,2-TRICHLORO-1,2,2-TRIFLUOROETHANE': 'ug/L', '1,1,2-TRICHLOROETHANE': 'ug/L', '1,1-DICHLOROETHANE': 'ug/L', '1,1-DICHLOROETHYLENE': 'ug/L', '1,1-DICHLOROPROPENE': 'ug/L', '1,2,3,4,6,7,8-HPCDD': 'ng/L', '1,2,3,4,6,7,8-HPCDF': 'ng/L', '1,2,3,4,7,8-HXCDD': 'ng/L', '1,2,3,4,7,8-HXCDF': 'ng/L', '1,2,3,7,8-PCDF': 'ng/L', '1,2,3-TRICHLOROBENZENE': 'ug/L', '1,2,3-TRICHLOROPROPANE': 'ug/L', '1,2,4,5-TETRACHLOROBENZENE': 'ug/L', '1,2,4-TRICHLOROBENZENE': 'ug/L', '1,2-DIBROMO-3-CHLOROPROPANE': 'ug/L', '1,2-DIBROMOETHANE': 'ug/L', '1,2-DICHLOROBENZENE': 'ug/L', '1,2-DICHLOROETHANE (EDC)': 'ug/L', '1,2-DICHLOROETHYLENE': 'ug/L', '1,2-DICHLOROPROPANE': 'ug/L', '1,2-DIPHENYLHYDRAZINE': 'ug/L', '1,3,5-TRIMETHYLBENZENE': 'ug/L', '1,3,5-TRINITROBENZENE': 'ug/L', '1,3-DICHLOROBENZENE': 'ug/L', '1,3-DICHLOROPROPANE': 'ug/L', '1,3-DINITROBENZENE': 'ug/L', '1,4-DICHLOROBENZENE': 'ug/L', '1,4-DIOXANE': 'ug/L', '1,4-NAPHTHOQUINONE': 'ug/L', '1-NAPHTHYLAMINE': 'ug/L', '2,2-DICHLOROPROPANE': 'ug/L', '2,3,4,6-TETRACHLOROPHENOL': 'ug/L', '2,3,7,8-TCDD': 'ng/L', '2,3,7,8-TCDF': 'ng/L', '2,4,5-T': 'ug/L', '2,4,5-TP (SILVEX)': 'ug/L', '2,4,5-TRICHLOROPHENOL': 'ug/L', '2,4,6-TRICHLOROPHENOL': 'ug/L', '2,4-DICHLOROPHENOL': 'ug/L', '2,4-DICHLOROPHENOXYACETIC ACID (2,4-D)': 'ug/L', '2,4-DIMETHYLPHENOL': 'ug/L', '2,4-DINITROPHENOL': 'ug/L', '2,4-DINITROTOLUENE': 'ug/L', '2,6-DICHLOROPHENOL': 'ug/L', '2,6-DINITROTOLUENE': 'ug/L', '2-ACETYLAMINOFLUORENE': 'ug/L', '2-CHLOROETHYL VINYL ETHER': 'ug/L', '2-CHLORONAPHTHALENE': 'ug/L', '2-CHLOROPHENOL': 'ug/L', '2-HEXANONE': 'ug/L', '2-METHYLANILINE (O-TOLUIDINE)': 'ug/L', '2-METHYLNAPHTHALENE': 'ug/L', '2-NAPHTHYLAMINE': 'ug/L', '2-NITROANILINE': 'ug/L', '2-NITROPHENOL': 'ug/L', '2-NITROPROPANE': 'ug/L', '2-PICOLINE': 'ug/L', "3,3'-DIMETHYLBENZIDINE": 'ug/L', '3,3-DICHLOROBENZIDINE': 'ug/L', '3-METHYLCHOLANTHRENE': 'ug/L', '4-AMINOBIPHENYL': 'ug/L', '4-BROMOPHENYL PHENYL ETHER': 'ug/L', '4-CHLOROANILINE': 'ug/L', '4-CHLOROPHENYL PHENYL ETHER': 'ug/L', '4-CHLOROTOLUENE': 'ug/L', '4-NITROPHENOL': 'ug/L', '4-NITROQUINOLINE-1-OXIDE': 'ug/L', '5-NITRO-O-TOLUIDINE': 'ug/L', '7,12-DIMETHYLBENZ(A)ANTHRACENE': 'ug/L', 'A,A-DIMETHYLPHENETHYLAMINE': 'ug/L', 'ACENAPHTHENE': 'ug/L', 'ACENAPHTHYLENE': 'ug/L', 'ACETONE': 'ug/L', 'ACETONITRILE (METHYL CYANIDE)': 'ug/L', 'ACETOPHENONE': 'ug/L', 'ACROLEIN': 'ug/L', 'ACRYLONITRILE': 'ug/L', 'ACTINIUM-228': 'pCi/L', 'AIR TEMPERATURE': 'degC', 'ALDRIN': 'ug/L', 'ALLYL CHLORIDE': 'ug/L', 'ALPHA-BENZENE HEXACHLORIDE': 'ug/L', 'ALPHA-CHLORDANE': 'ug/L', 'ALUMINUM': 'ug/L', 'AMERICIUM-241': 'pCi/L', 'AMERICIUM-241/CURIUM-246': 'pCi/L', 'AMERICIUM-243': 'pCi/L', 'AMMONIA': 'mg/L', 'ANILINE': 'ug/L', 'ANTHRACENE': 'ug/L', 'ANTIMONY': 'ug/L', 'ANTIMONY-124': 'pCi/L', 'ANTIMONY-125': 'pCi/L', 'ARAMITE': 'ug/L', 'AROCLOR 1016': 'ug/L', 'AROCLOR 1221': 'ug/L', 'AROCLOR 1232': 'ug/L', 'AROCLOR 1242': 'ug/L', 'AROCLOR 1248': 'ug/L', 'AROCLOR 1254': 'ug/L', 'AROCLOR 1260': 'ug/L', 'ARSENIC': 'ug/L', 'ATRAZINE': 'ug/L', 'BARIUM': 'ug/L', 'BARIUM-133': 'pCi/L', 'BARIUM-140': 'pCi/L', 'BENZALDEHYDE': 'ug/L', 'BENZENE': 'ug/L', 'BENZIDINE': 'ug/L', 'BENZO(G,H,I)PERYLENE': 'ug/L', 'BENZOIC ACID': 'ug/L', 'BENZO[A]ANTHRACENE': 'ug/L', 'BENZO[A]PYRENE': 'ug/L', 'BENZO[B]FLUORANTHENE': 'ug/L', 'BENZO[K]FLUORANTHENE': 'ug/L', 'BENZYL ALCOHOL': 'ug/L', 'BERYLLIUM': 'ug/L', 'BERYLLIUM-7': 'pCi/L', 'BETA-BENZENE HEXACHLORIDE': 'ug/L', 'BIS(2-CHLORO-1-METHYLETHYL)ETHER': 'ug/L', 'BIS(2-CHLOROETHOXY)METHANE': 'ug/L', 'BIS(2-CHLOROETHYL)ETHER': 'ug/L', 'BIS(2-ETHYLHEXYL)PHTHALATE (DEHP)': 'ug/L', 'BIS(CHLOROMETHYL)ETHER': 'ug/L', 'BISMUTH-212': 'pCi/L', 'BISMUTH-214': 'pCi/L', 'BORON': 'ug/L', 'BROMIDE': 'mg/L', 'BROMOBENZENE': 'ug/L', 'BROMOCHLOROMETHANE': 'ug/L', 'BROMODICHLOROMETHANE': 'ug/L', 'BROMOFORM (TRIBROMOMETHANE)': 'ug/L', 'BROMOMETHANE (METHYL BROMIDE)': 'ug/L', 'BUTYL BENZYL PHTHALATE': 'ug/L', 'CADMIUM': 'ug/L', 'CALCIUM': 'ug/L', 'CAPROLACTAM': 'ug/L', 'CARBAZOLE': 'ug/L', 'CARBON 13-LABELED 2,3,7,8-TCDD': 'ng/L', 'CARBON 13-LABELED 2,3,7,8-TCDF': 'ng/L', 'CARBON DISULFIDE': 'ug/L', 'CARBON TETRACHLORIDE': 'ug/L', 'CARBON-14': 'pCi/L', 'CARBONATE': 'mg/L', 'CERIUM-141': 'pCi/L', 'CERIUM-144': 'pCi/L', 'CESIUM': 'ug/L', 'CESIUM-134': 'pCi/L', 'CESIUM-137': 'pCi/L', 'CHLORIDE': 'mg/L', 'CHLOROBENZENE': 'ug/L', 'CHLOROBENZILATE': 'ug/L', 'CHLOROETHANE (ETHYL CHLORIDE)': 'ug/L', 'CHLOROETHENE (VINYL CHLORIDE)': 'ug/L', 'CHLOROFORM': 'ug/L', 'CHLOROMETHANE (METHYL CHLORIDE)': 'ug/L', 'CHLOROPRENE': 'ug/L', 'CHROMIUM': 'ug/L', 'CHROMIUM-51': 'pCi/L', 'CHRYSENE': 'ug/L', 'CIS-1,2-DICHLOROETHYLENE': 'ug/L', 'CIS-1,3-DICHLOROPROPENE': 'ug/L', 'COBALT': 'ug/L', 'COBALT-57': 'pCi/L', 'COBALT-58': 'pCi/L', 'COBALT-60': 'pCi/L', 'COPPER': 'ug/L', 'CUMENE (ISOPROPYLBENZENE)': 'ug/L', 'CURIUM-242': 'pCi/L', 'CURIUM-243': 'pCi/L', 'CURIUM-243/244': 'pCi/L', 'CURIUM-244': 'pCi/L', 'CURIUM-245/246': 'pCi/L', 'CURIUM-246': 'pCi/L', 'CYANIDE': 'ug/L', 'CYCLOHEXANE': 'ug/L', 'CYCLOHEXANONE': 'ug/L', 'DDD': 'ug/L', 'DDE': 'ug/L', 'DDT': 'ug/L', 'DELTA-BENZENE HEXACHLORIDE': 'ug/L', 'DEPTH_TO_WATER': 'ft', 'DI-N-BUTYL PHTHALATE': 'ug/L', 'DIALLATE': 'ug/L', 'DIBENZOFURAN': 'ug/L', 'DIBENZ[AH]ANTHRACENE': 'ug/L', 'DIBROMOCHLOROMETHANE': 'ug/L', 'DIBROMOMETHANE (METHYLENE BROMIDE)': 'ug/L', 'DICHLORODIFLUOROMETHANE': 'ug/L', 'DICHLOROMETHANE (METHYLENE CHLORIDE)': 'ug/L', 'DIELDRIN': 'ug/L', 'DIETHYL PHTHALATE': 'ug/L', 'DIMETHOATE': 'ug/L', 'DIMETHYL PHTHALATE': 'ug/L', 'DINITRO-O-CRESOL': 'ug/L', 'DINOSEB': 'ug/L', 'DIPHENYLAMINE': 'ug/L', 'DISULFOTON': 'ug/L', 'ENDOSULFAN I': 'ug/L', 'ENDOSULFAN II': 'ug/L', 'ENDOSULFAN SULFATE': 'ug/L', 'ENDRIN': 'ug/L', 'ENDRIN ALDEHYDE': 'ug/L', 'ENDRIN KETONE': 'ug/L', 'ETHANE': 'ug/L', 'ETHYL ACETATE': 'ug/L', 'ETHYL METHACRYLATE': 'ug/L', 'ETHYL METHANESULFONATE': 'ug/L', 'ETHYLBENZENE': 'ug/L', 'ETHYLENE': 'ug/L', 'EUROPIUM-152': 'pCi/L', 'EUROPIUM-154': 'pCi/L', 'EUROPIUM-155': 'pCi/L', 'FAMPHUR': 'ug/L', 'FLOW RATE': 'gpm', 'FLUORANTHENE': 'ug/L', 'FLUORENE': 'ug/L', 'FLUORIDE': 'mg/L', 'GAMMA-CHLORDANE': 'ug/L', 'GROSS ALPHA': 'pCi/L', 'HARDNESS AS CACO3': 'ug/L', 'HEPTACHLOR': 'ug/L', 'HEPTACHLOR EPOXIDE': 'ug/L', 'HEPTACHLORODIBENZO-P-DIOXINS': 'ng/L', 'HEPTACHLORODIBENZO-P-FURANS': 'ng/L', 'HEPTACHLORODIBENZOFURAN': 'ng/L', 'HEXACHLOROBENZENE': 'ug/L', 'HEXACHLOROBUTADIENE': 'ug/L', 'HEXACHLOROCYCLOPENTADIENE': 'ug/L', 'HEXACHLORODIBENZO-P-DIOXINS': 'ng/L', 'HEXACHLORODIBENZO-P-FURANS': 'ng/L', 'HEXACHLOROETHANE': 'ug/L', 'HEXACHLOROPHENE': 'ug/L', 'HEXACHLOROPROPENE': 'ug/L', 'HEXACHLORORDIBENZOFURAN': 'ng/L', 'HEXANE': 'ug/L', 'INDENO[1,2,3-CD]PYRENE': 'ug/L', 'IODINE-129': 'pCi/L', 'IODINE-131': 'pCi/L', 'IODOMETHANE (METHYL IODIDE)': 'ug/L', 'IRON': 'ug/L', 'IRON-55': 'pCi/L', 'IRON-59': 'pCi/L', 'ISOBUTANOL': 'ug/L', 'ISODRIN': 'ug/L', 'ISOPHORONE': 'ug/L', 'ISOSAFROLE': 'ug/L', 'KEPONE': 'ug/L', 'LEAD': 'ug/L', 'LEAD-212': 'pCi/L', 'LEAD-214': 'pCi/L', 'LINDANE': 'ug/L', 'LITHIUM': 'ug/L', 'M,P-XYLENE': 'ug/L', 'M-CRESOL': 'ug/L', 'M-NITROANILINE': 'ug/L', 'M/P-CRESOL': 'ug/L', 'MAGNESIUM': 'ug/L', 'MANGANESE': 'ug/L', 'MANGANESE-54': 'pCi/L', 'MERCURY': 'ug/L', 'METHACRYLONITRILE': 'ug/L', 'METHANE': 'ug/L', 'METHAPYRILENE': 'ug/L', 'METHOXYCHLOR': 'ug/L', 'METHYL ACETATE': 'ug/L', 'METHYL ETHYL KETONE': 'ug/L', 'METHYL ISOBUTYL KETONE': 'ug/L', 'METHYL METHACRYLATE': 'ug/L', 'METHYL METHANESULFONATE': 'ug/L', 'METHYL PARATHION': 'ug/L', 'METHYL TERTIARY BUTYL ETHER (MTBE)': 'ug/L', 'METHYLCYCLOHEXANE': 'ug/L', 'MOLYBDENUM': 'ug/L', 'N-BUTYLBENZENE': 'ug/L', 'N-DIOCTYL PHTHALATE': 'ug/L', 'N-NITROSO-N-METHYLETHYLAMINE': 'ug/L', 'N-NITROSODI-N-BUTYLAMINE': 'ug/L', 'N-NITROSODIETHYLAMINE': 'ug/L', 'N-NITROSODIMETHYLAMINE': 'ug/L', 'N-NITROSODIPHENYLAMINE': 'ug/L', 'N-NITROSODIPHENYLAMINE+DIPHENYLAMINE': 'ug/L', 'N-NITROSODIPROPYLAMINE': 'ug/L', 'N-NITROSOMORPHOLINE': 'ug/L', 'N-NITROSOPIPERIDINE': 'ug/L', 'N-NITROSOPYRROLIDINE': 'ug/L', 'N-PROPYLBENZENE': 'ug/L', 'NAPHTHALENE': 'ug/L', 'NEPTUNIUM-237': 'pCi/L', 'NEPTUNIUM-239': 'pCi/L', 'NICKEL': 'ug/L', 'NICKEL-59': 'pCi/L', 'NICKEL-63': 'pCi/L', 'NIOBIUM-95': 'pCi/L', 'NITRATE': 'mg/L', 'NITRATE-NITRITE AS NITROGEN': 'mg/L', 'NITRITES': 'mg/L', 'NITROBENZENE': 'ug/L', 'NONVOLATILE BETA': 'pCi/L', 'O,O,O-TRIETHYL PHOSPHOROTHIOATE': 'ug/L', 'O-CRESOL (2-METHYLPHENOL)': 'ug/L', 'O-XYLENE': 'ug/L', 'OCTACHLORODIBENZO-P-DIOXIN': 'ng/L', 'OCTACHLORODIBENZO-P-FURAN': 'ng/L', 'ORTHOCHLOROTOLUENE': 'ug/L', 'ORTHOPHOSPHATE': 'mg/L', 'OXALATE': 'mg/L', 'OXIDATION/REDUCTION POTENTIAL': 'mV', 'OXYGEN': 'mg/L', 'P-CHLORO-M-CRESOL': 'ug/L', 'P-CRESOL': 'ug/L', 'P-DIMETHYLAMINOAZOBENZENE': 'ug/L', 'P-NITROANILINE': 'ug/L', 'P-PHENYLENEDIAMINE': 'ug/L', 'PARACYMEN': 'ug/L', 'PARATHION': 'ug/L', 'PENTACHLOROBENZENE': 'ug/L', 'PENTACHLORODIBENZO-P-DIOXINS': 'ng/L', 'PENTACHLORODIBENZO-P-FURANS': 'ng/L', 'PENTACHLORODIBENZOFURAN': 'ng/L', 'PENTACHLOROETHANE': 'ug/L', 'PENTACHLORONITROBENZENE': 'ug/L', 'PENTACHLOROPHENOL': 'ug/L', 'PH': 'pH', 'PHENACETIN': 'ug/L', 'PHENANTHRENE': 'ug/L', 'PHENOL': 'ug/L', 'PHENOLPHTHALEIN ALKALINITY (AS CACO3)': 'mg/L', 'PHENOLS': 'mg/L', 'PHORATE': 'ug/L', 'PLUTONIUM-238': 'pCi/L', 'PLUTONIUM-239': 'pCi/L', 'PLUTONIUM-239/240': 'pCi/L', 'PLUTONIUM-242': 'pCi/L', 'POTASSIUM': 'ug/L', 'POTASSIUM-40': 'pCi/L', 'PROMETHIUM-144': 'pCi/L', 'PROMETHIUM-146': 'pCi/L', 'PRONAMIDE': 'ug/L', 'PROPIONITRILE': 'ug/L', 'PYRENE': 'ug/L', 'PYRIDINE': 'ug/L', 'RADIUM, TOTAL ALPHA-EMITTING': 'pCi/L', 'RADIUM-226': 'pCi/L', 'RADIUM-228': 'pCi/L', 'RADON-222': 'pCi/L', 'RUTHENIUM-103': 'pCi/L', 'RUTHENIUM-106': 'pCi/L', 'SAFROLE': 'ug/L', 'SEC-BUTYLBENZENE': 'ug/L', 'SELENIUM': 'ug/L', 'SILICA': 'ug/L', 'SILICON': 'ug/L', 'SILVER': 'ug/L', 'SODIUM': 'ug/L', 'SODIUM-22': 'pCi/L', 'SPECIFIC CONDUCTANCE': 'uS/cm', 'STRONTIUM': 'ug/L', 'STRONTIUM-89': 'pCi/L', 'STRONTIUM-89/90': 'pCi/L', 'STRONTIUM-90': 'pCi/L', 'STYRENE': 'ug/L', 'SULFATE': 'mg/L', 'SULFIDE': 'mg/L', 'SULFOTEPP': 'ug/L', 'SULFUR': 'ug/L', 'TECHNETIUM-99': 'pCi/L', 'TEMPERATURE': 'degC', 'TERT-BUTYLBENZENE': 'ug/L', 'TETRACHLORODIBENZO-P-DIOXIN': 'ng/L', 'TETRACHLORODIBENZO-P-FURANS': 'ng/L', 'TETRACHLORODIBENZOFURAN': 'ng/L', 'TETRACHLOROETHYLENE (PCE)': 'ug/L', 'THALLIUM': 'ug/L', 'THALLIUM-208': 'pCi/L', 'THIONAZIN': 'ug/L', 'THORIUM': 'ug/L', 'THORIUM-228': 'pCi/L', 'THORIUM-230': 'pCi/L', 'THORIUM-232': 'pCi/L', 'THORIUM-234': 'pCi/L', 'TIN': 'ug/L', 'TIN-113': 'pCi/L', 'TITANIUM': 'ug/L', 'TOLUENE': 'ug/L', 'TOTAL ACTIVITY': 'pCi/mL', 'TOTAL ALKALINITY (AS CACO3)': 'mg/L', 'TOTAL CHLORDANE': 'ug/L', 'TOTAL DISSOLVED SOLIDS': 'mg/L', 'TOTAL ORGANIC CARBON': 'mg/L', 'TOTAL ORGANIC HALOGENS': 'mg/L', 'TOTAL PHOSPHATES (AS  P)': 'ug/L', 'TOTAL SUSPENDED SOLIDS': 'mg/L', 'TOXAPHENE': 'ug/L', 'TRANS-1,2-DICHLOROETHYLENE': 'ug/L', 'TRANS-1,3-DICHLOROPROPENE': 'ug/L', 'TRANS-1,4-DICHLORO-2-BUTENE': 'ug/L', 'TRIBUTYL PHOSPHATE': 'ug/L', 'TRICHLOROETHYLENE (TCE)': 'ug/L', 'TRICHLOROFLUOROMETHANE': 'ug/L', 'TRICHLOROTRIFLUOROETHANE': 'ug/L', 'TRITIUM': 'pCi/mL', 'TURBIDITY': 'NTU', 'URANIUM': 'ug/L', 'URANIUM-233/234': 'pCi/L', 'URANIUM-234': 'pCi/L', 'URANIUM-235': 'pCi/L', 'URANIUM-235/236': 'pCi/L', 'URANIUM-238': 'pCi/L', 'VANADIUM': 'ug/L', 'VINYL ACETATE': 'ug/L', 'VOLUME PURGED': 'gal', 'WATER TEMPERATURE': 'degC', 'XYLENES': 'ug/L', 'YTTRIUM-88': 'pCi/L', 'ZINC': 'ug/L', 'ZINC-65': 'pCi/L', 'ZIRCONIUM-95': 'pCi/L'}
         return unit_dictionary[analyte_name]
+    
+    # Description:
+    #    Returns a list of the well names filtered by the unit(s) specified.
+    # Parameters:
+    #    units (list of strings): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    def filter_wells(self, units):
+        data = self.data
+        if(units==None):
+            units= ['A', 'B', 'C', 'D']
+        def getUnits():
+            wells = list(np.unique(data.STATION_ID))
+            wells = pd.DataFrame(wells, columns=['station_id'])
+            for index, row in wells.iterrows():
+                mo = re.match('.+([0-9])[^0-9]*$', row.station_id)
+                last_index = mo.start(1)
+                wells.at[index, 'unit'] = row.station_id[last_index+1:]
+                u = wells.unit.iloc[index]
+                if(len(u)==0): # if has no letter, use D
+                    wells.at[index, 'unit'] = 'D'
+                if(len(u)>1): # if has more than 1 letter, remove the extra letter
+                    if(u.find('R')>0):
+                        wells.at[index, 'unit'] = u[:-1]
+                    else:
+                        wells.at[index, 'unit'] = u[1:]
+                u = wells.unit.iloc[index]
+                if(u=='A' or u=='B' or u=='C' or u=='D'):
+                    pass
+                else:
+                    wells.at[index, 'unit'] = 'D'
+            return wells
+        df = getUnits()
+        res = df.loc[df.unit.isin(units)]
+        return list(res.station_id)
+
+    # Description:
+    #    Removes outliers from a dataframe based on the z_scores and returns the new dataframe.
+    # Parameters:
+    #    data (dataframe): data for the outliers to removed from
+    #    z_threshold (float): z_score threshold to eliminate.
+    def remove_outliers(self, data, z_threshold=4):
+        z = np.abs(stats.zscore(data))
+        row_loc = np.unique(np.where(z > z_threshold)[0])
+        data = data.drop(data.index[row_loc])
+        return data
     
     # Description:
     #    Returns a csv file saved to save_dir with details pertaining to the specified analyte.
@@ -494,11 +578,12 @@ class functions:
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
     # Parameters:
     #    well_name (string): name of the well to be processed
+    #    remove_outliers (bool): choose whether or to remove the outliers.
+    #    z_threshold (float): z_score threshold to eliminate outliers
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-
-    def plot_corr_by_well(self, well_name, interpolate=False, frequency='2W', save_dir='plot_correlation'):
+    def plot_corr_by_well(self, well_name, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
         data = self.data
         query = data[data.STATION_ID == well_name]
         a = list(np.unique(query.ANALYTE_NAME.values))
@@ -532,6 +617,11 @@ class functions:
             pivScaled = pd.DataFrame(pivScaled, columns=piv.columns)
             pivScaled.index = piv.index
             piv = pivScaled
+            # Remove outliers
+            if(remove_outliers):
+                piv = self.remove_outliers(piv, z_threshold=z_threshold)
+            samples = piv.shape[0]
+            
 
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -560,15 +650,17 @@ class functions:
     # Description: 
     #    Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
     # Parameters:
+    #    remove_outliers (bool): choose whether or to remove the outliers.
+    #    z_threshold (float): z_score threshold to eliminate outliers
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_all_corr_by_well(self, interpolate=False, frequency='2W', save_dir='plot_correlation'):
+    def plot_all_corr_by_well(self, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
         data = self.data
         wells = np.array(data.STATION_ID.values)
         wells = np.unique(wells)
         for well in wells:
-            self.plot_corr_by_well(well_name=well, interpolate=interpolate, frequency=frequency, save_dir=save_dir)
+            self.plot_corr_by_well(well_name=well, remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir)
         
     # Description: 
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date.
@@ -813,10 +905,13 @@ class functions:
     # Parameters:
     #    date (string): date to be analyzed
     #    n_clusters (int): number of clusters to split the data into.
+    #    filter (bool): Flag to indicate well filtering.
+    #    filter_well_by (list of strings): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    #    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    show_labels (bool): choose whether or not to show the name of the wells.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_PCA_by_date(self, date, n_clusters=4, min_samples=48, show_labels=True, save_dir='plot_PCA_by_date'):
+    def plot_PCA_by_date(self, date, n_clusters=4, filter=False, filter_well_by=['D'], return_clusters=False, min_samples=48, show_labels=True, save_dir='plot_PCA_by_date'):
         data = self.data
         data = self.simplify_data(data=data)
         query = data[data.COLLECTION_DATE == date]
@@ -835,8 +930,15 @@ class functions:
         else:
             analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+            
+            # FILTERING CODE
+            main_data = piv.dropna()
+            if(filter):
+                res_wells = self.filter_wells(filter_well_by)
+                main_data = main_data.loc[main_data.index.isin(res_wells)]
+            
             scaler = StandardScaler()
-            X = scaler.fit_transform(piv.dropna())
+            X = scaler.fit_transform(main_data)
             pca = PCA(n_components=2)
             x_new = pca.fit_transform(X)
             
@@ -848,7 +950,7 @@ class functions:
             pca_points['predicted'] = model.labels_
             # Create a dataframe for cluster_centers (centroids)
             centroids = pd.DataFrame(model.cluster_centers_, columns=["x1", "x2"])
-            colors = sns.color_palette("Set1", 10)
+            colors = ['red', 'blue', 'orange', 'purple', 'green', 'beige', 'pink', 'black', 'cadetblue', 'lightgreen']
             pca_points['color'] = pca_points['predicted'].map(lambda p: colors[p])
 
             fig, ax = plt.subplots(figsize=(10,10))
@@ -883,7 +985,7 @@ class functions:
                         plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'g', ha = 'center', va = 'bottom')
 
                 if(show_labels):
-                    for x_pos, y_pos, label in zip(scatt_X, scatt_Y, piv.dropna().index):
+                    for x_pos, y_pos, label in zip(scatt_X, scatt_Y, main_data.index):
                         ax.annotate(label, # The label for this point
                         xy=(x_pos, y_pos), # Position of the corresponding point
                         xytext=(7, 0),     # Offset text by 7 points to the right
@@ -911,6 +1013,20 @@ class functions:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             fig.savefig(save_dir + '/' + 'PCA Biplot - '+ date +'.png', bbox_inches="tight")
+            
+            if(return_clusters):
+                stations = list(main_data.index)
+                color_wells = list(pca_points.color)
+                def merge(list1, list2): 
+                    merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))] 
+                    return merged_list
+                color_df = pd.DataFrame(merge(stations, color_wells), columns=['station_id', 'color'])
+                if(self.get_GPS_Data==None):
+                    print('You need to set the GPS data first using the set_GPS_Data function.')
+                    return None
+                else:
+                    gps_color = pd.merge(self.get_GPS_Data(), color_df, on=['station_id'])
+                    return gps_color
     
     
     # Description: 
@@ -918,10 +1034,13 @@ class functions:
     # Parameters:
     #    year (int): date to be analyzed
     #    n_clusters (int): number of clusters to split the data into.
+    #    filter (bool): Flag to indicate well filtering.
+    #    filter_well_by (list of strings): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    #    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    show_labels (bool): choose whether or not to show the name of the wells.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_PCA_by_year(self, year, n_clusters=4, min_samples=48, show_labels=True, save_dir='plot_PCA_by_year'):
+    def plot_PCA_by_year(self, year, n_clusters=4, filter=False, filter_well_by=['D'], return_clusters=False, min_samples=48, show_labels=True, save_dir='plot_PCA_by_year'):
         data = self.data
         query = self.simplify_data(data=data)
         query.COLLECTION_DATE = pd.to_datetime(query.COLLECTION_DATE)
@@ -941,8 +1060,15 @@ class functions:
         else:
             analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+            
+            # FILTERING CODE
+            main_data = piv.dropna()
+            if(filter):
+                res_wells = self.filter_wells(filter_well_by)
+                main_data = main_data.loc[main_data.index.isin(res_wells)]
+            
             scaler = StandardScaler()
-            X = scaler.fit_transform(piv.dropna())
+            X = scaler.fit_transform(main_data)
             pca = PCA(n_components=2)
             x_new = pca.fit_transform(X)
 
@@ -954,7 +1080,7 @@ class functions:
             pca_points['predicted'] = model.labels_
             # Create a dataframe for cluster_centers (centroids)
             centroids = pd.DataFrame(model.cluster_centers_, columns=["x1", "x2"])
-            colors = sns.color_palette("Set1", 10)
+            colors = ['red', 'blue', 'orange', 'purple', 'green', 'beige', 'pink', 'black', 'cadetblue', 'lightgreen']
             pca_points['color'] = pca_points['predicted'].map(lambda p: colors[p])
             
             fig, ax = plt.subplots(figsize=(15,15))
@@ -988,7 +1114,7 @@ class functions:
                         plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'g', ha = 'center', va = 'bottom')
 
                 if(show_labels):
-                    for x_pos, y_pos, label in zip(scatt_X, scatt_Y, piv.dropna().index):
+                    for x_pos, y_pos, label in zip(scatt_X, scatt_Y, main_data.index):
                         ax.annotate(label, # The label for this point
                         xy=(x_pos, y_pos), # Position of the corresponding point
                         xytext=(7, 0),     # Offset text by 7 points to the right
@@ -1016,6 +1142,20 @@ class functions:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             fig.savefig(save_dir + '/' + 'PCA Biplot - '+ str(year) +'.png', bbox_inches="tight")
+            
+            if(return_clusters):
+                stations = list(main_data.index)
+                color_wells = list(pca_points.color)
+                def merge(list1, list2): 
+                    merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))] 
+                    return merged_list
+                color_df = pd.DataFrame(merge(stations, color_wells), columns=['station_id', 'color'])
+                if(self.get_GPS_Data==None):
+                    print('You need to set the GPS data first using the set_GPS_Data function.')
+                    return None
+                else:
+                    gps_color = pd.merge(self.get_GPS_Data(), color_df, on=['station_id'])
+                    return gps_color
     
     # Description: 
     #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a well_name in the dataset. Only uses the 6 important analytes.
@@ -1119,3 +1259,160 @@ class functions:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             fig.savefig(save_dir + '/' + title +'.png', bbox_inches="tight")
+            
+    # Description: 
+    #    Plots the well locations on an interactive map given coordinates.
+    # Parameters:
+    #    gps_data (dataframe): Data frame with the following column names: station_id, latitude, longitude, color. If the color column is not passed, the default color will be blue.
+    #    center (list with 2 floats): latitude and longitude coordinates to center the map view.
+    #    zoom (int): value to determine the initial scale of the map
+    def plot_coordinates_to_map(self, gps_data, center=[33.271459, -81.675873], zoom=14):
+        center = center
+        zoom = 14
+        m = Map(basemap=basemaps.Esri.WorldImagery, center=center, zoom=zoom)
+
+        m.add_control(FullScreenControl())
+        for (index,row) in gps_data.iterrows():
+
+            if('color' in gps_data.columns):
+                icon = AwesomeIcon(
+                    name='tint',
+                    marker_color=row.loc['color'],
+                    icon_color='black',
+                    spin=False
+                )
+            else:
+                icon = AwesomeIcon(
+                    name='tint',
+                    marker_color='blue',
+                    icon_color='black',
+                    spin=False
+                )
+
+            loc = [row.loc['latitude'],row.loc['longitude']]
+            station = HTML(value=row.loc['station_id'])
+
+            marker = Marker(location=loc,
+                            icon=icon,
+                            draggable=False,
+                       )
+
+            m.add_layer(marker)
+
+            popup = Popup(child=station,
+                          max_height=1)
+
+            marker.popup = popup
+
+        return m
+    
+    # IN THE WORKS
+    def transform_time_series(self, analytes=[], resample='2W', remove_outliers=False, z_threshold=4):
+        data = self.data
+        def transform_time_series_by_analyte(data, analyte_name):
+            wells_analyte = np.unique(data[data.ANALYTE_NAME == analyte_name].STATION_ID)
+            condensed = data[data.ANALYTE_NAME == analyte_name].groupby(['STATION_ID','COLLECTION_DATE']).mean()
+            analyte_df_resample = pd.DataFrame(index=wells_analyte, columns=t)
+            analyte_df_resample.sort_index(inplace=True)
+            for well in wells_analyte:
+                for date in condensed.loc[well].index:
+                    analyte_df_resample.at[well, date] = condensed.loc[well,date].RESULT
+            analyte_df_resample = analyte_df_resample.astype('float').T
+            analyte_df_resample = analyte_df_resample.interpolate(method='linear')
+            return analyte_df_resample
+
+        all_dates = np.unique(data.COLLECTION_DATE)
+        # Create array of equally spaced dates
+        start = pd.Timestamp(all_dates.min())
+        end = pd.Timestamp(all_dates.max())
+        delta = end - start
+        t = np.linspace(start.value, end.value, delta.days)
+        t = pd.to_datetime(t)
+        t = pd.Series(t)
+        t = t.apply(lambda x: x.replace(minute=0, hour=0, second=0, microsecond=0, nanosecond=0))
+
+        cutoff_dates = []
+        # Save each analyte data
+        analyte_data = []
+        for analyte in analytes:
+            ana_data = transform_time_series_by_analyte(data, analyte)
+            if(remove_outliers):
+                ana_data = self.remove_outliers(ana_data, z_threshold=z_threshold)
+            ana_data.index = pd.to_datetime(ana_data.index)
+            # Resample
+            ana_data_resample = ana_data.resample(resample).mean()
+            # Save data
+            analyte_data.append(ana_data_resample)
+            # Determine cuttoff point for number of NaNs in dataset
+            passes_limit = []
+            for date in ana_data_resample.index:
+                limit = 0.7 * ana_data_resample.shape[1]
+                curr = ana_data_resample.isna().loc[date,:].value_counts()
+                if('False' in str(curr)):
+                    curr_total = ana_data_resample.isna().loc[date,:].value_counts()[0]
+                    if curr_total > limit:
+                        passes_limit.append(date)
+            passes_limit = pd.to_datetime(passes_limit)
+            cutoff_dates.append(passes_limit.min())
+        start_index = pd.Series(cutoff_dates).max()
+
+        # Get list of shared wells amongst all the listed analytes
+        combined_well_list = []
+        for x in range(len(analytes)):
+            combined_well_list = combined_well_list + list(analyte_data[x].columns)
+        combined_count = pd.Series(combined_well_list).value_counts()
+        shared_wells = list(combined_count[list(pd.Series(combined_well_list).value_counts()==len(analytes))].index)
+
+        # Vectorize data
+        vectorized_df = pd.DataFrame(columns=analytes, index = shared_wells)
+
+        for analyte, num in zip(analytes, range(len(analytes))):
+            for well in shared_wells:
+                analyte_data_full = analyte_data[num][well].fillna(analyte_data[num][well].mean())
+                vectorized_df.at[well, analyte] = analyte_data_full[start_index:].values
+
+        dates = ana_data_resample[start_index:].index
+        return vectorized_df, dates
+    
+    def get_individual_analyte_df(self, data, dates, analyte):
+        sample = data[analyte]
+        sample_analyte = pd.DataFrame(sample, index=dates, columns=sample.index)
+        for well in sample.index:
+            sample_analyte[well] = sample[well]
+        return sample_analyte
+    
+    def cluster_data(self, data, n_clusters=4, log_transform=False, filter=False, filter_well_by=['D'], return_clusters=False):
+        if(filter):
+            res_wells = self.filter_wells(filter_well_by)
+            data = data.T
+            data = data.loc[data.index.isin(res_wells)]
+            data = data.T
+        if(log_transform):
+            data = np.log10(data)
+            data = data.dropna(axis=1)
+        temp = data.T
+        k_Means = KMeans(n_clusters=n_clusters, random_state=42)
+        km = k_Means.fit(temp)
+        predict = km.predict(temp)
+        temp['predicted'] = km.labels_
+        colors = ['red', 'blue', 'orange', 'purple', 'green', 'beige', 'pink', 'black', 'cadetblue', 'lightgreen']
+        temp['color'] = temp['predicted'].map(lambda p: colors[p])
+
+        fig, ax = plt.subplots(figsize=(20,10))
+        ax = plt.axes()
+
+        color = temp['color']
+        for x in range(temp.shape[0]):
+            curr = data.iloc[:,x]
+            ax.plot(curr, label=curr.name, color=color[x])
+            ax.legend()
+        
+        if(return_clusters):
+            color_df = pd.DataFrame(temp['color'])
+            color_df['station_id'] = color_df.index
+            if(self.get_GPS_Data==None):
+                print('You need to set the GPS data first using the set_GPS_Data function.')
+                return None
+            else:
+                gps_color = pd.merge(self.get_GPS_Data(), color_df, on=['station_id'])
+                return gps_color
