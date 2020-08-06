@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pylenm',
-      version='0.1.4',
+      version='0.1.5',
       description='Python functions for Analyzing Historical Groundwater Datasets',
       url='https://github.com/AurelienMeray/pylenm',
       author='Aurelien Meray',
@@ -18,5 +18,7 @@ setup(name='pylenm',
           'datetime',
           'sklearn',
           'supersmoother',
+          'ipyleaflet>=0.13.0',
+          'ipywidgets>=7.5.0'
           ],
       zip_safe=False)
