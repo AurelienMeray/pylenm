@@ -24,15 +24,11 @@ import scipy.stats as stats
 import warnings
 warnings.filterwarnings("ignore")
 from ipyleaflet import Map 
-from ipyleaflet import basemaps 
-from pyproj import Proj
+from ipyleaflet import basemaps
 from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON, 
                         LayersControl, Icon, Marker,FullScreenControl,
                         CircleMarker, Popup, AwesomeIcon) 
 from ipywidgets import HTML
-import pylenm_usages as usage
-
-__version__ = '0.1.5'
 
 
 class functions:
