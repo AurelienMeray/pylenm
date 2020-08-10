@@ -719,7 +719,7 @@ class functions:
     #    year (int): year to be analyzed
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_year(self, year, min_samples=500, save_dir='plot_corr_by_year'):
+    def plot_corr_by_year(self, year, remove_outliers=True, z_threshold=4, min_samples=500, save_dir='plot_corr_by_year'):
         data = self.data
         query = data
         query = self.simplify_data(data=query)
@@ -739,6 +739,11 @@ class functions:
         else:
             analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+            # Remove outliers
+            if(remove_outliers):
+                piv = self.remove_outliers(piv, z_threshold=z_threshold)
+            samples = piv.shape[0] * piv.shape[1]
+
             title = str(year) + '_correlation'
 
             sns.set_style("white", {"axes.facecolor": "0.95"})
