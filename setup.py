@@ -37,7 +37,7 @@ setup(name='pylenm',
         'numpy',
         'seaborn',
         'matplotlib',
-        'statsmodels'
+        'statsmodels',
         'scipy',
         'datetime',
         'sklearn',
