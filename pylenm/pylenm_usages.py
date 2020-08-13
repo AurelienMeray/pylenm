@@ -137,6 +137,21 @@ __usage['plot_all_correlation_heatmap'] = """
     {}save_dir (string):{} name of the directory you want to save the plot to
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
+__usage['interpolate_wells_by_analyte'] = """
+{}interpolate_wells_by_analyte{} (analyte, frequency='2W', rm_outliers=True, z_threshold=3)
+{}Description:{} 
+    Resamples analyte data based on the frequency specified and interpolates the values in between. 
+    NaN values are replaced with the average value per well.
+{}Parameters:{}
+    {}analyte (string):{} analyte name for interpolation of all present wells.
+    {}frequency (string):{} {{‘D’, ‘W’, ‘M’, ‘Y’}} frequency to interpolate. 
+        See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. 
+        (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
+    {}rm_outliers (bool):{} flag to remove outliers in the data
+    {}z_threshold (int):{} z_score threshold to eliminate outliers
+
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
 __usage['interpolate_well_data'] = """
 {}interpolate_well_data{} (well_name, analytes, frequency='2W')
 {}Description:{} 
@@ -156,7 +171,7 @@ __usage['plot_corr_by_well'] = """
     Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
 {}Parameters:{}
     {}well_name (string):{} name of the well to be processed
-    {}remove_outliers (bool):{} choose whether or to remove the outliers.
+    {}remove_outliers (bool):{} choose whether or not to remove the outliers.
     {}z_threshold (float):{} z_score threshold to eliminate outliers
     {}interpolate (bool):{} choose whether or not to interpolate the data
     {}frequency (string):{} {{‘D’, ‘W’, ‘M’, ‘Y’}} frequency to interpolate. 
