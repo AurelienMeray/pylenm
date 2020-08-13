@@ -540,6 +540,7 @@ class functions:
                                           show_symmetry=show_symmetry,
                                           color=color,
                                           save_dir=save_dir)
+
     
     # Description: 
     #    Resamples the data based on the frequency specified and interpolates the values of the analytes.
@@ -1306,9 +1307,28 @@ class functions:
             marker.popup = popup
 
         return m
+
+
+    # Description: 
+    #    Resamples analyte data based on the frequency specified and interpolates the values in between. NaN values are replaced with the average value per well.
+    # Parameters:
+    #    analyte (string): analyte name for interpolation of all present wells.
+    #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
+    #    rm_outliers (bool): flag to remove outliers in the data
+    #    z_threshold (int): z_score threshold to eliminate outliers
+    def interpolate_wells_by_analyte(self, analyte, frequency='2W', rm_outliers=True, z_threshold=3):
+        data = self.data
+        df_t, dates = self.transform_time_series( 
+                                                 analytes=[analyte], 
+                                                 resample=frequency, 
+                                                 rm_outliers=True, 
+                                                 z_threshold=z_threshold)
+        res_interp = self.get_individual_analyte_df(data=df_t, dates=dates, analyte=analyte)
+        res_interp = res_interp.dropna(axis=1, how='all')
+        return res_interp
     
     # IN THE WORKS
-    def transform_time_series(self, analytes=[], resample='2W', remove_outliers=False, z_threshold=4):
+    def transform_time_series(self, analytes=[], resample='2W', rm_outliers=False, z_threshold=4):
         data = self.data
         def transform_time_series_by_analyte(data, analyte_name):
             wells_analyte = np.unique(data[data.ANALYTE_NAME == analyte_name].STATION_ID)
@@ -1337,8 +1357,11 @@ class functions:
         analyte_data = []
         for analyte in analytes:
             ana_data = transform_time_series_by_analyte(data, analyte)
-            if(remove_outliers):
-                ana_data = self.remove_outliers(ana_data, z_threshold=z_threshold)
+            if(rm_outliers):
+                col_num = ana_data.shape[1]
+                for col in range(col_num):
+                    ana_data.iloc[:,col] = self.remove_outliers(ana_data.iloc[:,col].dropna(), z_threshold=z_threshold)
+                ana_data = ana_data.interpolate(method='linear')
             ana_data.index = pd.to_datetime(ana_data.index)
             # Resample
             ana_data_resample = ana_data.resample(resample).mean()
