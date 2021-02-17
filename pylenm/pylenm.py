@@ -35,7 +35,8 @@ class functions:
     
     def __init__(self, data):
         self.setData(data)
-    
+
+# DATA VALIDATION     
     def __isValid_Data(self, data):
         if(str(type(data)).lower().find('dataframe') == -1):
             return (False, 'Make sure the data is a pandas DataFrame.\n')
@@ -43,62 +44,76 @@ class functions:
             return (False, 'Make sure that ALL of the columns specified in the REQUIREMENTS are present.\n')
         else:
             return (True, None)
-        
-    def __isValid_GPS(self, data):
+    
+    def __isValid_Construction_Data(self, data):
         if(str(type(data)).lower().find('dataframe') == -1):
             return (False, 'Make sure the data is a pandas DataFrame.\n')
-        if(not self.__hasColumns_GPS(data)):
+        if(not self.__hasColumns_Construction_Data(data)):
             return (False, 'Make sure that ALL of the columns specified in the REQUIREMENTS are present.\n')
         else:
             return (True, None)
     
+# COLUMN VALIDATION 
     def __hasColumns_Data(self, data):
         find = ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']
         cols = list(data.columns)
+        cols = [x.upper() for x in cols]
         hasCols =  all(item in cols for item in find)
         return hasCols
-    
-    def __hasColumns_GPS(self, data):
-        find = ['station_id', 'latitude', 'longitude']
+
+    def __hasColumns_Construction_Data(self, data):
+        find = ['STATION_ID', 'AQUIFER', 'WELL_USE', 'LATITUDE', 'LONGITUDE', 'GROUND_ELEVATION', 'TOTAL_DEPTH']
         cols = list(data.columns)
+        cols = [x.upper() for x in cols]
         hasCols =  all(item in cols for item in find)
         return hasCols
-    
-    def setData(self, data):
+
+# SETTING DATA    
+    def setData(self, data, verbose=True):
         validation = self.__isValid_Data(data)
         if(validation[0]):
+            # Make all columns all caps
+            cols_upper = [x.upper() for x in list(data.columns)]
+            data.columns = cols_upper
             self.data = data
-            print('Successfully stored the data!\n')
-
+            if(verbose):
+                print('Successfully imported the data!\n')
+            self.__set_units()
         else:
             print('ERROR: {}'.format(validation[1]))
             return self.REQUIREMENTS_DATA()
     
-    def set_GPS_Data(self, GPS_Data):
-        validation = self.__isValid_GPS(GPS_Data)
+    def setConstructionData(self, construction_data, verbose=True):
+        validation = self.__isValid_Construction_Data(construction_data)
         if(validation[0]):
-            self.GPS_Data = GPS_Data
-            print('Successfully stored the GPS data!\n')
-
+            # Make all columns all caps
+            cols_upper = [x.upper() for x in list(construction_data.columns)]
+            construction_data.columns = cols_upper
+            self.construction_data = construction_data.set_index(['STATION_ID'])
+            if(verbose):
+                print('Successfully imported the construction data!\n')
         else:
             print('ERROR: {}'.format(validation[1]))
-            return self.REQUIREMENTS_GPS()
+            return self.REQUIREMENTS_CONSTRUCTION_DATA()
     
+    
+# GETTING DATA      
     def getData(self):
         return self.data
-        
-    def get_GPS_Data(self):
-        return self.GPS_Data
-        
+    
+    def get_Construction_Data(self):
+        return self.construction_data
+
+# MESSAGES FOR INVALID DATA          
     def REQUIREMENTS_DATA(self):
         print('PYLENM DATA REQUIREMENTS:\nThe imported data needs to meet ALL of the following conditions to have a successful import:')
         print('   1) Data should be a pandas dataframe.')
-        print("   2) Data must have these column names (Case sensitive): \n      ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']")
-        
-    def REQUIREMENTS_GPS(self):
-        print('PYLENM GPS REQUIREMENTS:\nThe imported gps data needs to meet ALL of the following conditions to have a successful import:')
+        print("   2) Data must have these column names: \n      ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']")
+
+    def REQUIREMENTS_CONSTRUCTION_DATA(self):
+        print('PYLENM CONSTRUCTION REQUIREMENTS:\nThe imported construction data needs to meet ALL of the following conditions to have a successful import:')
         print('   1) Data should be a pandas dataframe.')
-        print("   2) Data must have these column names (Case sensitive): \n      ['station_id', 'latitude', 'longitude']")
+        print("   2) Data must have these column names: \n      ['station_id', 'aquifer', 'well_use', 'latitude', 'longitude', 'ground_elevation', 'total_depth']")
     
     # Helper function for plot_correlation
     # Sorts analytes in a specific order: 'TRITIUM', 'URANIUM-238','IODINE-129','SPECIFIC CONDUCTANCE', 'PH', 'DEPTH_TO_WATER'
@@ -156,7 +171,7 @@ class functions:
             data.to_csv(save_dir + file_name + '.csv')
             print('Successfully saved "' + file_name +'.csv" in ' + save_dir)
         if(inplace):
-            self.setData(data)
+            self.setData(data, verbose=False)
         return data
     
     # Description:
@@ -170,14 +185,57 @@ class functions:
                          }
         return mcl_dictionary[analyte_name]
     
+    def __set_units(self):
+        analytes = list(np.unique(self.data[['ANALYTE_NAME']]))
+        mask1 = ~self.data[['ANALYTE_NAME','RESULT_UNITS']].duplicated()
+        res = self.data[['ANALYTE_NAME','RESULT_UNITS']][mask1]
+        mask2 = ~self.data[['ANALYTE_NAME']].duplicated()
+        res = res[mask2]
+        unit_dictionary = pd.Series(res.RESULT_UNITS.values,index=res.ANALYTE_NAME).to_dict()
+        self.unit_dictionary = unit_dictionary
+        
+    
     # Description:
     #    Returns the unit of the analyte you specify.
     #    Example: 'DEPTH_TO_WATER' returns 'ft'
     # Parameters:
     #    analyte_name (string): name of the analyte to be processed
     def get_unit(self, analyte_name):
-        unit_dictionary = {"1,1'-BIPHENYL": 'ug/L', '1,1,1,2-TETRACHLOROETHANE': 'ug/L', '1,1,1-TRICHLOROETHANE': 'ug/L', '1,1,2,2-TETRACHLOROETHANE': 'ug/L', '1,1,2-TRICHLORO-1,2,2-TRIFLUOROETHANE': 'ug/L', '1,1,2-TRICHLOROETHANE': 'ug/L', '1,1-DICHLOROETHANE': 'ug/L', '1,1-DICHLOROETHYLENE': 'ug/L', '1,1-DICHLOROPROPENE': 'ug/L', '1,2,3,4,6,7,8-HPCDD': 'ng/L', '1,2,3,4,6,7,8-HPCDF': 'ng/L', '1,2,3,4,7,8-HXCDD': 'ng/L', '1,2,3,4,7,8-HXCDF': 'ng/L', '1,2,3,7,8-PCDF': 'ng/L', '1,2,3-TRICHLOROBENZENE': 'ug/L', '1,2,3-TRICHLOROPROPANE': 'ug/L', '1,2,4,5-TETRACHLOROBENZENE': 'ug/L', '1,2,4-TRICHLOROBENZENE': 'ug/L', '1,2-DIBROMO-3-CHLOROPROPANE': 'ug/L', '1,2-DIBROMOETHANE': 'ug/L', '1,2-DICHLOROBENZENE': 'ug/L', '1,2-DICHLOROETHANE (EDC)': 'ug/L', '1,2-DICHLOROETHYLENE': 'ug/L', '1,2-DICHLOROPROPANE': 'ug/L', '1,2-DIPHENYLHYDRAZINE': 'ug/L', '1,3,5-TRIMETHYLBENZENE': 'ug/L', '1,3,5-TRINITROBENZENE': 'ug/L', '1,3-DICHLOROBENZENE': 'ug/L', '1,3-DICHLOROPROPANE': 'ug/L', '1,3-DINITROBENZENE': 'ug/L', '1,4-DICHLOROBENZENE': 'ug/L', '1,4-DIOXANE': 'ug/L', '1,4-NAPHTHOQUINONE': 'ug/L', '1-NAPHTHYLAMINE': 'ug/L', '2,2-DICHLOROPROPANE': 'ug/L', '2,3,4,6-TETRACHLOROPHENOL': 'ug/L', '2,3,7,8-TCDD': 'ng/L', '2,3,7,8-TCDF': 'ng/L', '2,4,5-T': 'ug/L', '2,4,5-TP (SILVEX)': 'ug/L', '2,4,5-TRICHLOROPHENOL': 'ug/L', '2,4,6-TRICHLOROPHENOL': 'ug/L', '2,4-DICHLOROPHENOL': 'ug/L', '2,4-DICHLOROPHENOXYACETIC ACID (2,4-D)': 'ug/L', '2,4-DIMETHYLPHENOL': 'ug/L', '2,4-DINITROPHENOL': 'ug/L', '2,4-DINITROTOLUENE': 'ug/L', '2,6-DICHLOROPHENOL': 'ug/L', '2,6-DINITROTOLUENE': 'ug/L', '2-ACETYLAMINOFLUORENE': 'ug/L', '2-CHLOROETHYL VINYL ETHER': 'ug/L', '2-CHLORONAPHTHALENE': 'ug/L', '2-CHLOROPHENOL': 'ug/L', '2-HEXANONE': 'ug/L', '2-METHYLANILINE (O-TOLUIDINE)': 'ug/L', '2-METHYLNAPHTHALENE': 'ug/L', '2-NAPHTHYLAMINE': 'ug/L', '2-NITROANILINE': 'ug/L', '2-NITROPHENOL': 'ug/L', '2-NITROPROPANE': 'ug/L', '2-PICOLINE': 'ug/L', "3,3'-DIMETHYLBENZIDINE": 'ug/L', '3,3-DICHLOROBENZIDINE': 'ug/L', '3-METHYLCHOLANTHRENE': 'ug/L', '4-AMINOBIPHENYL': 'ug/L', '4-BROMOPHENYL PHENYL ETHER': 'ug/L', '4-CHLOROANILINE': 'ug/L', '4-CHLOROPHENYL PHENYL ETHER': 'ug/L', '4-CHLOROTOLUENE': 'ug/L', '4-NITROPHENOL': 'ug/L', '4-NITROQUINOLINE-1-OXIDE': 'ug/L', '5-NITRO-O-TOLUIDINE': 'ug/L', '7,12-DIMETHYLBENZ(A)ANTHRACENE': 'ug/L', 'A,A-DIMETHYLPHENETHYLAMINE': 'ug/L', 'ACENAPHTHENE': 'ug/L', 'ACENAPHTHYLENE': 'ug/L', 'ACETONE': 'ug/L', 'ACETONITRILE (METHYL CYANIDE)': 'ug/L', 'ACETOPHENONE': 'ug/L', 'ACROLEIN': 'ug/L', 'ACRYLONITRILE': 'ug/L', 'ACTINIUM-228': 'pCi/L', 'AIR TEMPERATURE': 'degC', 'ALDRIN': 'ug/L', 'ALLYL CHLORIDE': 'ug/L', 'ALPHA-BENZENE HEXACHLORIDE': 'ug/L', 'ALPHA-CHLORDANE': 'ug/L', 'ALUMINUM': 'ug/L', 'AMERICIUM-241': 'pCi/L', 'AMERICIUM-241/CURIUM-246': 'pCi/L', 'AMERICIUM-243': 'pCi/L', 'AMMONIA': 'mg/L', 'ANILINE': 'ug/L', 'ANTHRACENE': 'ug/L', 'ANTIMONY': 'ug/L', 'ANTIMONY-124': 'pCi/L', 'ANTIMONY-125': 'pCi/L', 'ARAMITE': 'ug/L', 'AROCLOR 1016': 'ug/L', 'AROCLOR 1221': 'ug/L', 'AROCLOR 1232': 'ug/L', 'AROCLOR 1242': 'ug/L', 'AROCLOR 1248': 'ug/L', 'AROCLOR 1254': 'ug/L', 'AROCLOR 1260': 'ug/L', 'ARSENIC': 'ug/L', 'ATRAZINE': 'ug/L', 'BARIUM': 'ug/L', 'BARIUM-133': 'pCi/L', 'BARIUM-140': 'pCi/L', 'BENZALDEHYDE': 'ug/L', 'BENZENE': 'ug/L', 'BENZIDINE': 'ug/L', 'BENZO(G,H,I)PERYLENE': 'ug/L', 'BENZOIC ACID': 'ug/L', 'BENZO[A]ANTHRACENE': 'ug/L', 'BENZO[A]PYRENE': 'ug/L', 'BENZO[B]FLUORANTHENE': 'ug/L', 'BENZO[K]FLUORANTHENE': 'ug/L', 'BENZYL ALCOHOL': 'ug/L', 'BERYLLIUM': 'ug/L', 'BERYLLIUM-7': 'pCi/L', 'BETA-BENZENE HEXACHLORIDE': 'ug/L', 'BIS(2-CHLORO-1-METHYLETHYL)ETHER': 'ug/L', 'BIS(2-CHLOROETHOXY)METHANE': 'ug/L', 'BIS(2-CHLOROETHYL)ETHER': 'ug/L', 'BIS(2-ETHYLHEXYL)PHTHALATE (DEHP)': 'ug/L', 'BIS(CHLOROMETHYL)ETHER': 'ug/L', 'BISMUTH-212': 'pCi/L', 'BISMUTH-214': 'pCi/L', 'BORON': 'ug/L', 'BROMIDE': 'mg/L', 'BROMOBENZENE': 'ug/L', 'BROMOCHLOROMETHANE': 'ug/L', 'BROMODICHLOROMETHANE': 'ug/L', 'BROMOFORM (TRIBROMOMETHANE)': 'ug/L', 'BROMOMETHANE (METHYL BROMIDE)': 'ug/L', 'BUTYL BENZYL PHTHALATE': 'ug/L', 'CADMIUM': 'ug/L', 'CALCIUM': 'ug/L', 'CAPROLACTAM': 'ug/L', 'CARBAZOLE': 'ug/L', 'CARBON 13-LABELED 2,3,7,8-TCDD': 'ng/L', 'CARBON 13-LABELED 2,3,7,8-TCDF': 'ng/L', 'CARBON DISULFIDE': 'ug/L', 'CARBON TETRACHLORIDE': 'ug/L', 'CARBON-14': 'pCi/L', 'CARBONATE': 'mg/L', 'CERIUM-141': 'pCi/L', 'CERIUM-144': 'pCi/L', 'CESIUM': 'ug/L', 'CESIUM-134': 'pCi/L', 'CESIUM-137': 'pCi/L', 'CHLORIDE': 'mg/L', 'CHLOROBENZENE': 'ug/L', 'CHLOROBENZILATE': 'ug/L', 'CHLOROETHANE (ETHYL CHLORIDE)': 'ug/L', 'CHLOROETHENE (VINYL CHLORIDE)': 'ug/L', 'CHLOROFORM': 'ug/L', 'CHLOROMETHANE (METHYL CHLORIDE)': 'ug/L', 'CHLOROPRENE': 'ug/L', 'CHROMIUM': 'ug/L', 'CHROMIUM-51': 'pCi/L', 'CHRYSENE': 'ug/L', 'CIS-1,2-DICHLOROETHYLENE': 'ug/L', 'CIS-1,3-DICHLOROPROPENE': 'ug/L', 'COBALT': 'ug/L', 'COBALT-57': 'pCi/L', 'COBALT-58': 'pCi/L', 'COBALT-60': 'pCi/L', 'COPPER': 'ug/L', 'CUMENE (ISOPROPYLBENZENE)': 'ug/L', 'CURIUM-242': 'pCi/L', 'CURIUM-243': 'pCi/L', 'CURIUM-243/244': 'pCi/L', 'CURIUM-244': 'pCi/L', 'CURIUM-245/246': 'pCi/L', 'CURIUM-246': 'pCi/L', 'CYANIDE': 'ug/L', 'CYCLOHEXANE': 'ug/L', 'CYCLOHEXANONE': 'ug/L', 'DDD': 'ug/L', 'DDE': 'ug/L', 'DDT': 'ug/L', 'DELTA-BENZENE HEXACHLORIDE': 'ug/L', 'DEPTH_TO_WATER': 'ft', 'DI-N-BUTYL PHTHALATE': 'ug/L', 'DIALLATE': 'ug/L', 'DIBENZOFURAN': 'ug/L', 'DIBENZ[AH]ANTHRACENE': 'ug/L', 'DIBROMOCHLOROMETHANE': 'ug/L', 'DIBROMOMETHANE (METHYLENE BROMIDE)': 'ug/L', 'DICHLORODIFLUOROMETHANE': 'ug/L', 'DICHLOROMETHANE (METHYLENE CHLORIDE)': 'ug/L', 'DIELDRIN': 'ug/L', 'DIETHYL PHTHALATE': 'ug/L', 'DIMETHOATE': 'ug/L', 'DIMETHYL PHTHALATE': 'ug/L', 'DINITRO-O-CRESOL': 'ug/L', 'DINOSEB': 'ug/L', 'DIPHENYLAMINE': 'ug/L', 'DISULFOTON': 'ug/L', 'ENDOSULFAN I': 'ug/L', 'ENDOSULFAN II': 'ug/L', 'ENDOSULFAN SULFATE': 'ug/L', 'ENDRIN': 'ug/L', 'ENDRIN ALDEHYDE': 'ug/L', 'ENDRIN KETONE': 'ug/L', 'ETHANE': 'ug/L', 'ETHYL ACETATE': 'ug/L', 'ETHYL METHACRYLATE': 'ug/L', 'ETHYL METHANESULFONATE': 'ug/L', 'ETHYLBENZENE': 'ug/L', 'ETHYLENE': 'ug/L', 'EUROPIUM-152': 'pCi/L', 'EUROPIUM-154': 'pCi/L', 'EUROPIUM-155': 'pCi/L', 'FAMPHUR': 'ug/L', 'FLOW RATE': 'gpm', 'FLUORANTHENE': 'ug/L', 'FLUORENE': 'ug/L', 'FLUORIDE': 'mg/L', 'GAMMA-CHLORDANE': 'ug/L', 'GROSS ALPHA': 'pCi/L', 'HARDNESS AS CACO3': 'ug/L', 'HEPTACHLOR': 'ug/L', 'HEPTACHLOR EPOXIDE': 'ug/L', 'HEPTACHLORODIBENZO-P-DIOXINS': 'ng/L', 'HEPTACHLORODIBENZO-P-FURANS': 'ng/L', 'HEPTACHLORODIBENZOFURAN': 'ng/L', 'HEXACHLOROBENZENE': 'ug/L', 'HEXACHLOROBUTADIENE': 'ug/L', 'HEXACHLOROCYCLOPENTADIENE': 'ug/L', 'HEXACHLORODIBENZO-P-DIOXINS': 'ng/L', 'HEXACHLORODIBENZO-P-FURANS': 'ng/L', 'HEXACHLOROETHANE': 'ug/L', 'HEXACHLOROPHENE': 'ug/L', 'HEXACHLOROPROPENE': 'ug/L', 'HEXACHLORORDIBENZOFURAN': 'ng/L', 'HEXANE': 'ug/L', 'INDENO[1,2,3-CD]PYRENE': 'ug/L', 'IODINE-129': 'pCi/L', 'IODINE-131': 'pCi/L', 'IODOMETHANE (METHYL IODIDE)': 'ug/L', 'IRON': 'ug/L', 'IRON-55': 'pCi/L', 'IRON-59': 'pCi/L', 'ISOBUTANOL': 'ug/L', 'ISODRIN': 'ug/L', 'ISOPHORONE': 'ug/L', 'ISOSAFROLE': 'ug/L', 'KEPONE': 'ug/L', 'LEAD': 'ug/L', 'LEAD-212': 'pCi/L', 'LEAD-214': 'pCi/L', 'LINDANE': 'ug/L', 'LITHIUM': 'ug/L', 'M,P-XYLENE': 'ug/L', 'M-CRESOL': 'ug/L', 'M-NITROANILINE': 'ug/L', 'M/P-CRESOL': 'ug/L', 'MAGNESIUM': 'ug/L', 'MANGANESE': 'ug/L', 'MANGANESE-54': 'pCi/L', 'MERCURY': 'ug/L', 'METHACRYLONITRILE': 'ug/L', 'METHANE': 'ug/L', 'METHAPYRILENE': 'ug/L', 'METHOXYCHLOR': 'ug/L', 'METHYL ACETATE': 'ug/L', 'METHYL ETHYL KETONE': 'ug/L', 'METHYL ISOBUTYL KETONE': 'ug/L', 'METHYL METHACRYLATE': 'ug/L', 'METHYL METHANESULFONATE': 'ug/L', 'METHYL PARATHION': 'ug/L', 'METHYL TERTIARY BUTYL ETHER (MTBE)': 'ug/L', 'METHYLCYCLOHEXANE': 'ug/L', 'MOLYBDENUM': 'ug/L', 'N-BUTYLBENZENE': 'ug/L', 'N-DIOCTYL PHTHALATE': 'ug/L', 'N-NITROSO-N-METHYLETHYLAMINE': 'ug/L', 'N-NITROSODI-N-BUTYLAMINE': 'ug/L', 'N-NITROSODIETHYLAMINE': 'ug/L', 'N-NITROSODIMETHYLAMINE': 'ug/L', 'N-NITROSODIPHENYLAMINE': 'ug/L', 'N-NITROSODIPHENYLAMINE+DIPHENYLAMINE': 'ug/L', 'N-NITROSODIPROPYLAMINE': 'ug/L', 'N-NITROSOMORPHOLINE': 'ug/L', 'N-NITROSOPIPERIDINE': 'ug/L', 'N-NITROSOPYRROLIDINE': 'ug/L', 'N-PROPYLBENZENE': 'ug/L', 'NAPHTHALENE': 'ug/L', 'NEPTUNIUM-237': 'pCi/L', 'NEPTUNIUM-239': 'pCi/L', 'NICKEL': 'ug/L', 'NICKEL-59': 'pCi/L', 'NICKEL-63': 'pCi/L', 'NIOBIUM-95': 'pCi/L', 'NITRATE': 'mg/L', 'NITRATE-NITRITE AS NITROGEN': 'mg/L', 'NITRITES': 'mg/L', 'NITROBENZENE': 'ug/L', 'NONVOLATILE BETA': 'pCi/L', 'O,O,O-TRIETHYL PHOSPHOROTHIOATE': 'ug/L', 'O-CRESOL (2-METHYLPHENOL)': 'ug/L', 'O-XYLENE': 'ug/L', 'OCTACHLORODIBENZO-P-DIOXIN': 'ng/L', 'OCTACHLORODIBENZO-P-FURAN': 'ng/L', 'ORTHOCHLOROTOLUENE': 'ug/L', 'ORTHOPHOSPHATE': 'mg/L', 'OXALATE': 'mg/L', 'OXIDATION/REDUCTION POTENTIAL': 'mV', 'OXYGEN': 'mg/L', 'P-CHLORO-M-CRESOL': 'ug/L', 'P-CRESOL': 'ug/L', 'P-DIMETHYLAMINOAZOBENZENE': 'ug/L', 'P-NITROANILINE': 'ug/L', 'P-PHENYLENEDIAMINE': 'ug/L', 'PARACYMEN': 'ug/L', 'PARATHION': 'ug/L', 'PENTACHLOROBENZENE': 'ug/L', 'PENTACHLORODIBENZO-P-DIOXINS': 'ng/L', 'PENTACHLORODIBENZO-P-FURANS': 'ng/L', 'PENTACHLORODIBENZOFURAN': 'ng/L', 'PENTACHLOROETHANE': 'ug/L', 'PENTACHLORONITROBENZENE': 'ug/L', 'PENTACHLOROPHENOL': 'ug/L', 'PH': 'pH', 'PHENACETIN': 'ug/L', 'PHENANTHRENE': 'ug/L', 'PHENOL': 'ug/L', 'PHENOLPHTHALEIN ALKALINITY (AS CACO3)': 'mg/L', 'PHENOLS': 'mg/L', 'PHORATE': 'ug/L', 'PLUTONIUM-238': 'pCi/L', 'PLUTONIUM-239': 'pCi/L', 'PLUTONIUM-239/240': 'pCi/L', 'PLUTONIUM-242': 'pCi/L', 'POTASSIUM': 'ug/L', 'POTASSIUM-40': 'pCi/L', 'PROMETHIUM-144': 'pCi/L', 'PROMETHIUM-146': 'pCi/L', 'PRONAMIDE': 'ug/L', 'PROPIONITRILE': 'ug/L', 'PYRENE': 'ug/L', 'PYRIDINE': 'ug/L', 'RADIUM, TOTAL ALPHA-EMITTING': 'pCi/L', 'RADIUM-226': 'pCi/L', 'RADIUM-228': 'pCi/L', 'RADON-222': 'pCi/L', 'RUTHENIUM-103': 'pCi/L', 'RUTHENIUM-106': 'pCi/L', 'SAFROLE': 'ug/L', 'SEC-BUTYLBENZENE': 'ug/L', 'SELENIUM': 'ug/L', 'SILICA': 'ug/L', 'SILICON': 'ug/L', 'SILVER': 'ug/L', 'SODIUM': 'ug/L', 'SODIUM-22': 'pCi/L', 'SPECIFIC CONDUCTANCE': 'uS/cm', 'STRONTIUM': 'ug/L', 'STRONTIUM-89': 'pCi/L', 'STRONTIUM-89/90': 'pCi/L', 'STRONTIUM-90': 'pCi/L', 'STYRENE': 'ug/L', 'SULFATE': 'mg/L', 'SULFIDE': 'mg/L', 'SULFOTEPP': 'ug/L', 'SULFUR': 'ug/L', 'TECHNETIUM-99': 'pCi/L', 'TEMPERATURE': 'degC', 'TERT-BUTYLBENZENE': 'ug/L', 'TETRACHLORODIBENZO-P-DIOXIN': 'ng/L', 'TETRACHLORODIBENZO-P-FURANS': 'ng/L', 'TETRACHLORODIBENZOFURAN': 'ng/L', 'TETRACHLOROETHYLENE (PCE)': 'ug/L', 'THALLIUM': 'ug/L', 'THALLIUM-208': 'pCi/L', 'THIONAZIN': 'ug/L', 'THORIUM': 'ug/L', 'THORIUM-228': 'pCi/L', 'THORIUM-230': 'pCi/L', 'THORIUM-232': 'pCi/L', 'THORIUM-234': 'pCi/L', 'TIN': 'ug/L', 'TIN-113': 'pCi/L', 'TITANIUM': 'ug/L', 'TOLUENE': 'ug/L', 'TOTAL ACTIVITY': 'pCi/mL', 'TOTAL ALKALINITY (AS CACO3)': 'mg/L', 'TOTAL CHLORDANE': 'ug/L', 'TOTAL DISSOLVED SOLIDS': 'mg/L', 'TOTAL ORGANIC CARBON': 'mg/L', 'TOTAL ORGANIC HALOGENS': 'mg/L', 'TOTAL PHOSPHATES (AS  P)': 'ug/L', 'TOTAL SUSPENDED SOLIDS': 'mg/L', 'TOXAPHENE': 'ug/L', 'TRANS-1,2-DICHLOROETHYLENE': 'ug/L', 'TRANS-1,3-DICHLOROPROPENE': 'ug/L', 'TRANS-1,4-DICHLORO-2-BUTENE': 'ug/L', 'TRIBUTYL PHOSPHATE': 'ug/L', 'TRICHLOROETHYLENE (TCE)': 'ug/L', 'TRICHLOROFLUOROMETHANE': 'ug/L', 'TRICHLOROTRIFLUOROETHANE': 'ug/L', 'TRITIUM': 'pCi/mL', 'TURBIDITY': 'NTU', 'URANIUM': 'ug/L', 'URANIUM-233/234': 'pCi/L', 'URANIUM-234': 'pCi/L', 'URANIUM-235': 'pCi/L', 'URANIUM-235/236': 'pCi/L', 'URANIUM-238': 'pCi/L', 'VANADIUM': 'ug/L', 'VINYL ACETATE': 'ug/L', 'VOLUME PURGED': 'gal', 'WATER TEMPERATURE': 'degC', 'XYLENES': 'ug/L', 'YTTRIUM-88': 'pCi/L', 'ZINC': 'ug/L', 'ZINC-65': 'pCi/L', 'ZIRCONIUM-95': 'pCi/L'}
-        return unit_dictionary[analyte_name]
+        return self.unit_dictionary[analyte_name]
+
+    # Description: 
+    #    Filters construction data based on one column. You only specify ONE column to filter by, but can selected MANY values for the entry.
+    # Parameters:
+    #    data (dataframe): dataframe to filter
+    #    col (string): column to filter. Example: col='STATION_ID'
+    #    equals (list of strings): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
+    def filter_by_column(self, data=None, col=None, equals=[]):
+        if(data is None):
+            return 'ERROR: DataFrame was not provided to this function.'
+        else:
+            if(str(type(data)).lower().find('dataframe') == -1):
+                return 'ERROR: Data provided is not a pandas DataFrame.'
+            else:
+                data = data
+        # DATA VALIDATION
+        if(col==None):
+            return 'ERROR: Specify a column name to filter by.'
+        data_cols = list(data.columns)
+        if((col in data_cols)==False): # Make sure column name exists 
+            return 'Error: Column name "{}" does not exist'.format(col)
+        if(equals==[]):
+            return 'ERROR: Specify a value that "{}" should equal to'.format(col)
+        data_val = list(data[col])
+        for value in equals:
+            if((value in data_val)==False):
+                return 'ERROR: No value equal to "{}" in "{}".'.format(value, col)
+
+        # QUERY
+        final_data = pd.DataFrame()
+        for value in equals:
+            current_data = data[data[col]==value]
+            final_data = pd.concat([final_data, current_data])
+        return final_data
     
     # Description:
     #    Returns a list of the well names filtered by the unit(s) specified.
@@ -189,11 +247,11 @@ class functions:
             units= ['A', 'B', 'C', 'D']
         def getUnits():
             wells = list(np.unique(data.STATION_ID))
-            wells = pd.DataFrame(wells, columns=['station_id'])
+            wells = pd.DataFrame(wells, columns=['STATION_ID'])
             for index, row in wells.iterrows():
-                mo = re.match('.+([0-9])[^0-9]*$', row.station_id)
+                mo = re.match('.+([0-9])[^0-9]*$', row.STATION_ID)
                 last_index = mo.start(1)
-                wells.at[index, 'unit'] = row.station_id[last_index+1:]
+                wells.at[index, 'unit'] = row.STATION_ID[last_index+1:]
                 u = wells.unit.iloc[index]
                 if(len(u)==0): # if has no letter, use D
                     wells.at[index, 'unit'] = 'D'
@@ -210,7 +268,7 @@ class functions:
             return wells
         df = getUnits()
         res = df.loc[df.unit.isin(units)]
-        return list(res.station_id)
+        return list(res.STATION_ID)
 
     # Description:
     #    Removes outliers from a dataframe based on the z_scores and returns the new dataframe.
@@ -229,12 +287,22 @@ class functions:
     # Parameters:
     #    analyte_name (string): name of the analyte to be processed
     #    save_dir (string): name of the directory you want to save the csv file to
-    def get_analyte_details(self, analyte_name, save_dir='analyte_details'):
+    def get_analyte_details(self, analyte_name, filter=False, col=None, equals=[], save_to_file = False, save_dir='analyte_details'):
         data = self.data
         data = data[data.ANALYTE_NAME == analyte_name].reset_index().drop('index', axis=1)
         data = data[~data.RESULT.isna()]
         data = data.drop(['ANALYTE_NAME', 'RESULT', 'RESULT_UNITS'], axis=1)
         data.COLLECTION_DATE = pd.to_datetime(data.COLLECTION_DATE)
+        if(filter):
+            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(data.STATION_ID.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            data = data[data['STATION_ID'].isin(intersect_wells)]        
 
         info = []
         wells = np.unique(data.STATION_ID.values)
@@ -251,10 +319,10 @@ class functions:
             details = details.drop('Well Name', axis=1)
             details = details.sort_values(by=['Start Date', 'End Date'])
             details['Date Range (days)'] = (details['Date Range (days)']/ np.timedelta64(1, 'D')).astype(int)
-            details['Cumulative samples'] = details['Unique samples'].cumsum()
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        details.to_csv(save_dir + '/' + analyte_name + '_details.csv')
+        if(save_to_file):
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+            details.to_csv(save_dir + '/' + analyte_name + '_details.csv')
         return details
     
     # Description:
@@ -264,7 +332,7 @@ class functions:
     #    analytes (list of strings): list of analyte names to be processed. If left empty, a list of all the analytes in the data will be used.
     #    sort_by (string): {‘date’, ‘samples’, ‘wells’} sorts the data by either the dates by entering: ‘date’, the samples by entering: ‘samples’, or by unique well locations by entering ‘wells’.
     #    ascending (bool): flag to sort in ascending order.
-    def get_data_summary(self, analytes=None, sort_by='date', ascending=False):
+    def get_data_summary(self, analytes=None, sort_by='date', ascending=False, filter=False, col=None, equals=[]):
         data = self.data
         if(analytes == None):
             analytes = data.ANALYTE_NAME.unique()
@@ -272,6 +340,16 @@ class functions:
         data = data[~data.duplicated()] # remove duplicates
         data.COLLECTION_DATE = pd.to_datetime(data.COLLECTION_DATE)
         data = data[~data.RESULT.isna()]
+        if(filter):
+            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(data.STATION_ID.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            data = data[data['STATION_ID'].isin(intersect_wells)]
 
         info = []
         for analyte_name in analytes:
@@ -282,11 +360,11 @@ class functions:
             wellCount = len(query.STATION_ID.unique())
             stats = query.RESULT.describe().drop('count', axis=0)
             stats = pd.DataFrame(stats).T
-            stats_col = ['Result '+ x for x in stats.columns]
+            stats_col = [x for x in stats.columns]
 
             result = {'Analyte Name': analyte_name, 'Start Date': startDate, 'End Date': endDate,
-                      'Date Range (days)':endDate-startDate, 'Unique wells': wellCount,'Samples': numSamples,
-                      'Result unit': self.get_unit(analyte_name) }
+                      'Date Range (days)':endDate-startDate, '# unique wells': wellCount,'# samples': numSamples,
+                      'Unit': self.get_unit(analyte_name) }
             for num in range(len(stats_col)):
                 result[stats_col[num]] = stats.iloc[0][num] 
 
@@ -298,11 +376,42 @@ class functions:
             if(sort_by.lower() == 'date'):
                 details = details.sort_values(by=['Start Date', 'End Date', 'Date Range (days)'], ascending=ascending)
             elif(sort_by.lower() == 'samples'):
-                details = details.sort_values(by=['Samples'], ascending=ascending)
+                details = details.sort_values(by=['# samples'], ascending=ascending)
             elif(sort_by.lower() == 'wells'):
-                details = details.sort_values(by=['Unique wells'], ascending=ascending)
+                details = details.sort_values(by=['# unique wells'], ascending=ascending)
 
         return details
+    
+    # Description: 
+    #    Displays the analyte names available at given well locations.
+    # Parameters:
+    #    well_name (string): name of the well. If left empty, all wells are returned.
+    #    filter (bool): flag to indicate filtering
+    #    col (string): column to filter results
+    #    equals (list of strings): value to match column name. Multiple values are accepted.
+    def get_well_analytes(self, well_name=None, filter=False, col=None, equals=[]):
+        data = self.data
+        bb = "\033[1m"
+        be = "\033[0m"
+        if(filter):
+            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(data.STATION_ID.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            data = data[data['STATION_ID'].isin(intersect_wells)]
+        
+        if(well_name==None):
+            wells = list(data.STATION_ID.unique())
+        else:
+            wells = [well_name]
+        for well in wells:
+            print("{}{}{}".format(bb,str(well), be))
+            analytes = sorted(list(concentration_data[concentration_data.STATION_ID==well].ANALYTE_NAME.unique()))
+            print(str(analytes) +'\n')
     
     # Description: 
     #    Filters data by passing the data and specifying the well_name and analyte_name
@@ -329,7 +438,7 @@ class functions:
     #    plot_inline (bool): choose whether or not to show plot inline
     #    save_dir (string): name of the directory you want to save the plot to
     def plot_data(self, well_name, analyte_name, log_transform=True, alpha=0,
-              plot_inline=True, year_interval=2, save_dir='plot_data'):
+              plot_inline=True, year_interval=2, x_label='Years', y_label='', save_dir='plot_data', filter=False, col=None, equals=[]):
     
         # Gets appropriate data (well_name and analyte_name)
         query = self.query_data(well_name, analyte_name)
@@ -337,7 +446,17 @@ class functions:
 
         if(type(query)==int and query == 0):
             return 'No results found for {} and {}'.format(well_name, analyte_name)
-        else:   
+        else:
+            if(filter):
+                filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+                if('ERROR:' in str(filter_res)):
+                    return filter_res
+                query_wells = list(query.STATION_ID.unique())
+                filter_wells = list(filter_res.index.unique())
+                intersect_wells = list(set(query_wells) & set(filter_wells))
+                if(len(intersect_wells)<=0):
+                    return 'ERROR: No results for this query with the specifed filter parameters.'
+                query = query[query['STATION_ID'].isin(intersect_wells)]
             x_data = query.COLLECTION_DATE
             x_data = pd.to_datetime(x_data)
             y_data = query.RESULT
@@ -402,11 +521,14 @@ class functions:
                     ax.set_title(well_name + ' - ' + analyte_name, fontweight='bold')
                     ttl = ax.title
                     ttl.set_position([.5, 1.05])
-                    if(log_transform):
-                        ax.set_ylabel('log-Concentration (' + unit + ')')
+                    if(y_label==''):    
+                        if(log_transform):
+                            ax.set_ylabel('log-Concentration (' + unit + ')')
+                        else:
+                            ax.set_ylabel('Concentration (' + unit + ')')
                     else:
-                        ax.set_ylabel('Concentration (' + unit + ')')
-                    ax.set_xlabel('Years')
+                        ax.set_ylabel(y_label)
+                    ax.set_xlabel(x_label)
                     small_fontSize = 15
                     large_fontSize = 20
                     plt.rc('axes', titlesize=large_fontSize)
@@ -509,8 +631,7 @@ class functions:
             ttl = ax.title
             ttl.set_position([.5, 1.05])
             props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-            ax.text(1.3, 1.05, 'Start date:  {}\nEnd date:    {}\n\nSamples:     {} of {}'.format(piv.index[0], piv.index[-1], samples, totalSamples), 
-                    transform=ax.transAxes, fontsize=15, fontweight='bold', verticalalignment='bottom', bbox=props)
+            ax.text(1.3, 1.05, 'Start date:  {}\nEnd date:    {}\n\nSamples:     {} of {}'.format(piv.index[0], piv.index[-1], samples, totalSamples), transform=ax.transAxes, fontsize=15, fontweight='bold', verticalalignment='bottom', bbox=props)
             ax = sns.heatmap(corr_matrix,
                                    ax=ax,
                                    mask=mask,
@@ -625,8 +746,7 @@ class functions:
             g.fig.suptitle(title, fontweight='bold', y=1.08, fontsize=25)
             g.map_lower(sns.regplot, lowess=True, ci=False, line_kws={'color': 'red', 'lw': 3},
                                                             scatter_kws={'color': 'black', 's': 20})
-            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3},
-                                     hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
+            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
             g.map_upper(self.__plotUpperHalf)
             for ax in g.axes.flat: 
                 ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
@@ -634,9 +754,7 @@ class functions:
             ax = plt.gca()
 
             props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-            ax.text(1.3, 6.2, 'Start date:  {}\nEnd date:    {}\n\nOriginal samples:     {}\nSamples used:     {}'
-                        .format(piv.index[0].date(), piv.index[-1].date(), totalSamples, samples), 
-                        transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+            ax.text(1.3, 6.2, 'Start date:  {}\nEnd date:    {}\n\nOriginal samples:     {}\nSamples used:     {}'.format(piv.index[0].date(), piv.index[-1].date(), totalSamples, samples), transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
             # Add titles to the diagonal axes/subplots
             for ax, col in zip(np.diag(g.axes), piv.columns):
                 ax.set_title(col, y=0.82, fontsize=15)
@@ -691,8 +809,7 @@ class functions:
             g.fig.suptitle(title, fontweight='bold', y=1.08, fontsize=25)
             g.map_lower(sns.regplot, lowess=True, ci=False, line_kws={'color': 'red', 'lw': 3},
                                                             scatter_kws={'color': 'black', 's': 20})
-            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3},
-                                     hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
+            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
             g.map_upper(self.__plotUpperHalf)
             for ax in g.axes.flat: 
                 ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
@@ -700,8 +817,7 @@ class functions:
             ax = plt.gca()
 
             props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-            ax.text(1.3, 3, 'Date:  {}\n\nSamples used:     {}'.format(date, samples), 
-                        transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+            ax.text(1.3, 3, 'Date:  {}\n\nSamples used:     {}'.format(date, samples), transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
             # Add titles to the diagonal axes/subplots
             for ax, col in zip(np.diag(g.axes), piv.columns):
                 ax.set_title(col, y=0.82, fontsize=15)
@@ -748,8 +864,7 @@ class functions:
             g.fig.suptitle(title, fontweight='bold', y=1.08, fontsize=25)
             g.map_lower(sns.regplot, lowess=True, ci=False, line_kws={'color': 'red', 'lw': 3},
                                                             scatter_kws={'color': 'black', 's': 20})
-            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3},
-                                     hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
+            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
             g.map_upper(self.__plotUpperHalf)
             for ax in g.axes.flat: 
                 ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
@@ -757,8 +872,7 @@ class functions:
             ax = plt.gca()
 
             props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-            ax.text(1.3, 3, 'Date:  {}\n\nSamples used:     {}'.format(year, samples), 
-                        transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+            ax.text(1.3, 3, 'Date:  {}\n\nSamples used:     {}'.format(year, samples), transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
             # Add titles to the diagonal axes/subplots
             for ax, col in zip(np.diag(g.axes), piv.columns):
                 ax.set_title(col, y=0.82, fontsize=15)
@@ -887,11 +1001,9 @@ class functions:
                 l_predict = num2date(intersection_left[0]).date()
                 u_predict = num2date(intersection_right[0]).date()
                 ax.annotate(predict, (intersection[0], intersection[1]), xytext=(intersection[0], intersection[1]+1), 
-                            bbox=dict(boxstyle="round", alpha=0.1),ha='center',
-                           arrowprops=dict(arrowstyle="->", color='blue'), fontsize=small_fontSize, fontweight='bold')
+                            bbox=dict(boxstyle="round", alpha=0.1),ha='center', arrowprops=dict(arrowstyle="->", color='blue'), fontsize=small_fontSize, fontweight='bold')
                 props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-                ax.text(1.1, 0.5, 'Lower confidence:  {}\n            Prediction:  {}\nUpper confidence:  {}'.format(l_predict, predict, u_predict), 
-                        transform=ax.transAxes, fontsize=small_fontSize, fontweight='bold', verticalalignment='bottom', bbox=props)
+                ax.text(1.1, 0.5, 'Lower confidence:  {}\n            Prediction:  {}\nUpper confidence:  {}'.format(l_predict, predict, u_predict), transform=ax.transAxes, fontsize=small_fontSize, fontweight='bold', verticalalignment='bottom', bbox=props)
 
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
@@ -912,11 +1024,21 @@ class functions:
     #    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    show_labels (bool): choose whether or not to show the name of the wells.
-    #    save_dir (string): name of the directory you want to save the plot to
-    def plot_PCA_by_date(self, date, n_clusters=4, filter=False, filter_well_by=['D'], return_clusters=False, min_samples=48, show_labels=True, save_dir='plot_PCA_by_date'):
+    #    save_dir (string): name of the directory you want to save the plot to #### filter=False, filter_well_by=['D'],
+    def plot_PCA_by_date(self, date, n_clusters=4, return_clusters=False, min_samples=3, show_labels=True, save_dir='plot_PCA_by_date', filter=False, col=None, equals=[]):
         data = self.data
         data = self.simplify_data(data=data)
         query = data[data.COLLECTION_DATE == date]
+        if(filter):
+            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(query.STATION_ID.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            query = query[query['STATION_ID'].isin(intersect_wells)]
         a = list(np.unique(query.ANALYTE_NAME.values))
         b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
         analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
@@ -933,11 +1055,12 @@ class functions:
             analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
             
-            # FILTERING CODE
+            
             main_data = piv.dropna()
-            if(filter):
-                res_wells = self.filter_wells(filter_well_by)
-                main_data = main_data.loc[main_data.index.isin(res_wells)]
+            # # FILTERING CODE
+            # if(filter_code):
+            #     res_wells = self.filter_wells(filter_well_by)
+            #     main_data = main_data.loc[main_data.index.isin(res_wells)]
             
             scaler = StandardScaler()
             X = scaler.fit_transform(main_data)
@@ -1022,12 +1145,12 @@ class functions:
                 def merge(list1, list2): 
                     merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))] 
                     return merged_list
-                color_df = pd.DataFrame(merge(stations, color_wells), columns=['station_id', 'color'])
-                if(self.get_GPS_Data==None):
-                    print('You need to set the GPS data first using the set_GPS_Data function.')
+                color_df = pd.DataFrame(merge(stations, color_wells), columns=['STATION_ID', 'color'])
+                if(self.get_Construction_Data==None):
+                    print('You need to set the GPS data first using the getConstructionData function.')
                     return None
                 else:
-                    gps_color = pd.merge(self.get_GPS_Data(), color_df, on=['station_id'])
+                    gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                     return gps_color
     
     
@@ -1042,11 +1165,21 @@ class functions:
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    show_labels (bool): choose whether or not to show the name of the wells.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_PCA_by_year(self, year, n_clusters=4, filter=False, filter_well_by=['D'], return_clusters=False, min_samples=48, show_labels=True, save_dir='plot_PCA_by_year'):
+    def plot_PCA_by_year(self, year, n_clusters=4, return_clusters=False, min_samples=48, show_labels=True, save_dir='plot_PCA_by_year', filter=False, col=None, equals=[]):
         data = self.data
         query = self.simplify_data(data=data)
         query.COLLECTION_DATE = pd.to_datetime(query.COLLECTION_DATE)
         query = query[query.COLLECTION_DATE.dt.year == year]
+        if(filter):
+            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(query.STATION_ID.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            query = query[query['STATION_ID'].isin(intersect_wells)]
         a = list(np.unique(query.ANALYTE_NAME.values))
         b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
         analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
@@ -1063,11 +1196,11 @@ class functions:
             analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
             
-            # FILTERING CODE
             main_data = piv.dropna()
-            if(filter):
-                res_wells = self.filter_wells(filter_well_by)
-                main_data = main_data.loc[main_data.index.isin(res_wells)]
+            # # FILTERING CODE
+            # if(filter):
+            #     res_wells = self.filter_wells(filter_well_by)
+            #     main_data = main_data.loc[main_data.index.isin(res_wells)]
             
             scaler = StandardScaler()
             X = scaler.fit_transform(main_data)
@@ -1151,12 +1284,12 @@ class functions:
                 def merge(list1, list2): 
                     merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))] 
                     return merged_list
-                color_df = pd.DataFrame(merge(stations, color_wells), columns=['station_id', 'color'])
-                if(self.get_GPS_Data==None):
-                    print('You need to set the GPS data first using the set_GPS_Data function.')
+                color_df = pd.DataFrame(merge(stations, color_wells), columns=['STATION_ID', 'color'])
+                if(self.get_Construction_Data==None):
+                    print('You need to set the GPS data first using the setConstructionData function.')
                     return None
                 else:
-                    gps_color = pd.merge(self.get_GPS_Data(), color_df, on=['station_id'])
+                    gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                     return gps_color
     
     # Description: 
@@ -1291,8 +1424,8 @@ class functions:
                     spin=False
                 )
 
-            loc = [row.loc['latitude'],row.loc['longitude']]
-            station = HTML(value=row.loc['station_id'])
+            loc = [row.loc['LATITUDE'],row.loc['LONGITUDE']]
+            station = HTML(value=row.loc['STATION_ID'])
 
             marker = Marker(location=loc,
                             icon=icon,
@@ -1433,10 +1566,72 @@ class functions:
         
         if(return_clusters):
             color_df = pd.DataFrame(temp['color'])
-            color_df['station_id'] = color_df.index
-            if(self.get_GPS_Data==None):
-                print('You need to set the GPS data first using the set_GPS_Data function.')
+            color_df['STATION_ID'] = color_df.index
+            if(self.get_Construction_Data==None):
+                print('You need to set the GPS data first using the setConstructionData function.')
                 return None
             else:
-                gps_color = pd.merge(self.get_GPS_Data(), color_df, on=['station_id'])
+                gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                 return gps_color
+
+    def plot_all_time_series(self, analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
+                             min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False, filter=False, col=None, equals=[]):
+        data = self.simplify_data()
+        if(filter):
+            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(data.STATION_ID.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            data = data[data['STATION_ID'].isin(intersect_wells)]
+
+        if(analyte_name!=None):
+            data = data[data.ANALYTE_NAME == analyte_name]
+        wells = data.STATION_ID.unique()
+        wells_dateRange=pd.DataFrame(columns=['STATION_ID','START_DATE','END_DATE'])
+        for i in range(len(wells)):
+            wellName=wells[i]
+            wellNamedData=data[data['STATION_ID']==wells[i]]
+            minDate=min(wellNamedData['COLLECTION_DATE'])
+            maxDate=max(wellNamedData['COLLECTION_DATE'])
+            wells_dateRange.loc[wells_dateRange.shape[0]]=[wellName,minDate,maxDate]
+
+        wells_dateRange["RANGE"] = wells_dateRange.END_DATE - wells_dateRange.START_DATE
+        wells_dateRange.RANGE = wells_dateRange.RANGE.astype('timedelta64[D]').astype('int')
+        wells_dateRange = wells_dateRange[wells_dateRange.RANGE>min_days]
+        wells_dateRange.sort_values(by=["RANGE","END_DATE","START_DATE"], ascending = (False, False, True), inplace=True)
+        wells_dateRange.reset_index(inplace=True)
+        wells_dateRange.drop('index', axis=1, inplace=True)
+        wells = np.array(wells_dateRange.STATION_ID)
+
+        fig, ax = plt.subplots(1, 1, sharex=False,figsize=(20,6),dpi=300)
+
+        ax.set_xticks(range(len(wells)))
+        ax.set_xticklabels(wells, rotation='vertical', fontsize=6)
+
+        ax.plot(wells_dateRange['START_DATE'], c='blue', marker='o',lw=0, label='Start date')
+        ax.plot(wells_dateRange['END_DATE'], c='red', marker='o',lw=0, label='End date')
+
+        ax.hlines([max(wells_dateRange['END_DATE'])], x_min_lim, x_max_lim, colors='purple', label='Selected end date')
+        if(start_date==None):
+            ax.hlines([min(wells_dateRange['START_DATE'])], x_min_lim, x_max_lim, colors='green', label='Selected start date')
+        else:
+            ax.hlines([pd.to_datetime(start_date)], x_min_lim, x_max_lim, colors='green', label='Selected start date')
+
+        x_label = x_label + ' (count: ' + str(wells_dateRange.shape[0])+ ')'
+        ax.set_xlabel(x_label, fontsize=20)
+        ax.set_ylabel(y_label, fontsize=20)   
+        ax.set_xlim([x_min_lim, x_max_lim])
+        ax.set_ylim([pd.to_datetime(y_min_date), pd.to_datetime(y_max_date)]) 
+        ax.plot([], [], ' ', label="Time series with at least {} days".format(min_days))
+        ax.legend()
+        if(analyte_name!=None):
+            title = title + ' (' + analyte_name + ')'
+        fig.suptitle(title, fontsize=20)
+        for i in range(wells_dateRange.shape[0]):
+            ax.vlines(i,wells_dateRange.loc[i,'START_DATE'],wells_dateRange.loc[i,'END_DATE'],colors='k')
+        if(return_data):
+            return wells_dateRange

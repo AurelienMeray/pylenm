@@ -37,6 +37,16 @@ __usage['get_unit'] = """
     {}analyte_name (string):{} name of the analyte to be processed
 """.format(bb, be, bb, be, bb, be, bb, be)
 
+__usage['filter_by_column'] = """
+{}filter_by_column{} (data=None, col=None, equals=[]):
+{}Description:{}
+    Filters construction data based on one column. You only specify ONE column to filter by, but can selected MANY values for the entry.
+{}Parameters:{}
+    {}data (dataframe):{} dataframe to filter
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
 __usage['filter_wells'] = """
 {}filter_wells{} (units)
 {}Description:{}
@@ -55,16 +65,21 @@ __usage['remove_outliers'] = """
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['get_analyte_details'] = """
+{}get_analyte_details{} (analyte_name, filter=False, col=None, equals=[], save_to_file = False, save_dir='analyte_details')
 {}Description:{}
     Returns a csv file saved to save_dir with details pertaining to the specified analyte.
     Details include the well names, the date ranges and the number of unique samples.
 {}Parameters:{}
     {}analyte_name (string):{} name of the analyte to be processed
+    {}filter (bool):{} Flag to indicate well filtering.
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
+    {}save_to_file (bool):{} choose whether to save as a csv file
     {}save_dir (string):{} name of the directory you want to save the csv file to
-""".format(bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['get_data_summary'] = """
-{}get_data_summary{} (analytes=None, sort_by='date', ascending=False)
+{}get_data_summary{} (analytes=None, sort_by='date', ascending=False, filter=False, col=None, equals=[])
 {}Description:{}
     Returns a dataframe with a summary of the data for certain analytes.
     Summary includes the date ranges and the number of unique samples and other statistics for the analyte results.
@@ -74,7 +89,41 @@ __usage['get_data_summary'] = """
     {}sort_by (string):{} {{‘date’, ‘samples’, ‘wells’}} sorts the data by either the dates by entering: ‘date’, the 
         samples by entering: ‘samples’, or by unique well locations by entering ‘wells’.
     {}ascending (bool):{} flag to sort in ascending order.
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+    {}filter (bool):{} Flag to indicate well filtering.
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['get_well_analytes'] = """
+{}get_well_analytes{} (well_name=None, filter=False, col=None, equals=[])
+{}Description:{}
+    Displays the analyte names available at given well locations.
+{}Parameters:{}
+    {}well_name (string):{} name of the well to be processed
+    {}filter (bool):{} Flag to indicate well filtering.
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['plot_all_time_series'] = """
+{}plot_all_time_series{} (analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
+        min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False)
+{}Description:{}
+    Visualization for time series across many locations. Can be eithere used for the entire dataset or for a specific analyte.
+{}Parameters:{}
+    {}analyte_name (string):{} name of analyte to examine. If left empty, the fucntion will use the min and max date of the location (looks at all analytes).
+    {}start_date (string):{} date in the form {{YYYY-MM-DD}} to draw horizontal line for start date. If left empty, default is the min start date.
+    {}end_date (string):{} date in the form {{YYYY-MM-DD}} to draw horizontal line for end date. If left empty, default is the max end date.
+    {}title (string):{} title for the plot.
+    {}x_label (string):{} x-axis label.
+    {}y_label (string):{} y-axis label.
+    {}min_days (int):{} title for the plot.
+    {}x_min_lim (int):{} x-axis left boundary.
+    {}x_max_lim (int):{} x-axis right boundary.
+    {}y_min_date (string):{} date in the form {{YYYY-MM-DD}} for the y-axis lower boundary.
+    {}y_max_date (string):{} date in the form {{YYYY-MM-DD}} for the y-axis upper boundary.
+    {}return_data (bool):{} returns the dataframe used to plot.
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['query_data'] = """
 {}query_data{} (well_name, analyte_name)
@@ -87,7 +136,7 @@ __usage['query_data'] = """
 
 __usage['plot_data'] = """
 {}plot_data{} (well_name, analyte_name, log_transform=True,
-     alpha=0, year_interval=2, plot_inline=True, save_dir='plot_data')
+     alpha=0, year_interval=2, plot_inline=True, x_label='Years', y_label='', save_dir='plot_data')
 {}Description:{}
     Plot concentrations over time of a specified well and analyte with a smoothed curve on interpolated data points.
 {}Parameters:{}
@@ -97,8 +146,10 @@ __usage['plot_data'] = """
     {}alpha (int):{} value between 0 and 10 for line smoothing
     {}year_interval (int):{} plot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...)
     {}plot_inline (bool):{} choose whether or not to show plot inline
+    {}x_label (string):{} x-axis label
+    {}y_label (string):{} y-axis label
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be,
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be,
             bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_all_data'] = """
@@ -232,7 +283,7 @@ __usage['plot_MCL'] = """
 
 __usage['plot_PCA_by_date'] = """
 {}plot_PCA_by_date{} (date, n_clusters=4, min_samples=48,
-                        filter=False, filter_well_by=['D'], return_clusters=False,
+                        filter=False, col=None, equals=[], return_clusters=False,
                         show_labels=True, save_dir=‘plot_corr_by_date’)
 {}Description:{} 
     Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset.
@@ -241,16 +292,17 @@ __usage['plot_PCA_by_date'] = """
     {}date (string):{} date to be analyzed
     {}n_clusters (int):{} number of clusters to split the data into.
     {}filter (bool):{} Flag to indicate well filtering.
-    {}filter_well_by (list of strings):{} Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
     {}return_clusters (bool):{} Flag to return the cluster data to be used for spatial plotting.
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_year'] = """
 {}plot_PCA_by_year{} (year, n_clusters=4, min_samples=48, filter=False,
-                        filter_well_by=['D'], return_clusters=False, show_labels=True,
+                        col=None, equals=[], return_clusters=False, show_labels=True,
                         save_dir=‘plot_corr_by_year’)
 {}Description:{} 
     Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. 
@@ -259,12 +311,13 @@ __usage['plot_PCA_by_year'] = """
     {}year (int):{} date to be analyzed
     {}n_clusters (int):{} number of clusters to split the data into.
     {}filter (bool):{} Flag to indicate well filtering.
-    {}filter_well_by (list of strings):{} Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
     {}return_clusters (bool):{} Flag to return the cluster data to be used for spatial plotting.
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}show_labels (bool):{} choose whether or not to show the name of the wells.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_PCA_by_well'] = """
 {}plot_PCA_by_well{} (well_name, interpolate=False, frequency='2W', min_samples=48,
