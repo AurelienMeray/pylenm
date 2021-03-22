@@ -410,7 +410,7 @@ class functions:
             wells = [well_name]
         for well in wells:
             print("{}{}{}".format(bb,str(well), be))
-            analytes = sorted(list(concentration_data[concentration_data.STATION_ID==well].ANALYTE_NAME.unique()))
+            analytes = sorted(list(data[data.STATION_ID==well].ANALYTE_NAME.unique()))
             print(str(analytes) +'\n')
     
     # Description: 
