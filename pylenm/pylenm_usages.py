@@ -107,7 +107,7 @@ __usage['get_well_analytes'] = """
 
 __usage['plot_all_time_series'] = """
 {}plot_all_time_series{} (analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
-        min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False)
+        min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False, filter=False, col=None, equals=[])
 {}Description:{}
     Visualization for time series across many locations. Can be eithere used for the entire dataset or for a specific analyte.
 {}Parameters:{}
@@ -123,7 +123,10 @@ __usage['plot_all_time_series'] = """
     {}y_min_date (string):{} date in the form {{YYYY-MM-DD}} for the y-axis lower boundary.
     {}y_max_date (string):{} date in the form {{YYYY-MM-DD}} for the y-axis upper boundary.
     {}return_data (bool):{} returns the dataframe used to plot.
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+    {}filter (bool):{} Flag to indicate well filtering.
+    {}col (string):{}  column to filter. Example: col='STATION_ID'
+    {}equals (list of strings):{} values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['query_data'] = """
 {}query_data{} (well_name, analyte_name)
