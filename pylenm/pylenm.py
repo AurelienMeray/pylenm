@@ -9,10 +9,10 @@ import scipy
 import random
 import datetime
 import re
+import time
 import matplotlib.dates as mdates
 from matplotlib.dates import date2num, num2date
 get_ipython().run_line_magic('matplotlib', 'inline')
-import seaborn as sns
 from sklearn import preprocessing
 pd.set_option('display.max_columns', None) # to view all columns
 from scipy.optimize import curve_fit
@@ -23,8 +23,7 @@ from sklearn.cluster import KMeans
 import scipy.stats as stats
 import warnings
 warnings.filterwarnings("ignore")
-from ipyleaflet import Map 
-from ipyleaflet import basemaps
+from pyproj import Proj
 from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON, 
                         LayersControl, Icon, Marker,FullScreenControl,
                         CircleMarker, Popup, AwesomeIcon) 
@@ -35,6 +34,7 @@ class functions:
     
     def __init__(self, data):
         self.setData(data)
+        self.__jointData = [None, 0]
 
 # DATA VALIDATION     
     def __isValid_Data(self, data):
@@ -96,6 +96,18 @@ class functions:
             print('ERROR: {}'.format(validation[1]))
             return self.REQUIREMENTS_CONSTRUCTION_DATA()
     
+    def jointData_is_set(self, lag):
+        if(str(type(self.__jointData[0])).lower().find('dataframe') == -1):
+            return False
+        else:
+            if(self.__jointData[1]==lag):
+                return True
+            else:
+                return False
+
+    def set_jointData(self, data, lag):
+        self.__jointData[0] = data
+        self.__jointData[1] = lag
     
 # GETTING DATA      
     def getData(self):
@@ -696,19 +708,21 @@ class functions:
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
     # Parameters:
     #    well_name (string): name of the well to be processed
+    #    analytes (list of strings): list of analyte names to use
     #    remove_outliers (bool): choose whether or to remove the outliers.
     #    z_threshold (float): z_score threshold to eliminate outliers
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_well(self, well_name, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
+    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
         data = self.data
         query = data[data.STATION_ID == well_name]
-        a = list(np.unique(query.ANALYTE_NAME.values))
-        b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
-        analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
+        a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
+        for value in analytes:
+            if((value in a)==False):
+                return 'ERROR: No analyte named "{}" in data.'.format(value)
+        analytes = sorted(analytes)
         query = query.loc[query.ANALYTE_NAME.isin(analytes)]
-        analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
         x = query[['COLLECTION_DATE', 'ANALYTE_NAME']]
         unique = ~x.duplicated()
         query = query[unique]
@@ -740,7 +754,6 @@ class functions:
                 piv = self.remove_outliers(piv, z_threshold=z_threshold)
             samples = piv.shape[0]
             
-
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
             g.fig.suptitle(title, fontweight='bold', y=1.08, fontsize=25)
@@ -765,93 +778,120 @@ class functions:
     # Description: 
     #    Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
     # Parameters:
+    #    analytes (list of strings): list of analyte names to use
     #    remove_outliers (bool): choose whether or to remove the outliers.
     #    z_threshold (float): z_score threshold to eliminate outliers
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_all_corr_by_well(self, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
+    def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
         data = self.data
         wells = np.array(data.STATION_ID.values)
         wells = np.unique(wells)
         for well in wells:
-            self.plot_corr_by_well(well_name=well, remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir)
+            self.plot_corr_by_well(well_name=well, analytes=analytes,remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir)
         
     # Description: 
-    #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date.
+    #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
     # Parameters:
     #    date (string): date to be analyzed
+    #    analytes (list of strings): list of analyte names to use
+    #    lag (int): number of days to look ahead and behind the specified date (+/-)
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to    
-    def plot_corr_by_date(self, date, min_samples=48, save_dir='plot_corr_by_date'):
-        data = self.data
-        data = self.simplify_data(data=data)
-        query = data[data.COLLECTION_DATE == date]
-        a = list(np.unique(query.ANALYTE_NAME.values))
-        b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
-        analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
-        query = query.loc[query.ANALYTE_NAME.isin(analytes)]
-
-        if(query.shape[0] == 0):
-            return 'ERROR: {} has no data for the 6 analytes.'.format(date)
-        samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
-        if(samples < min_samples):
-            return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
-        if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
-            return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
+    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date'):
+        if(lag==0):
+            data = self.data
+            data = self.simplify_data(data=data)
+            query = data[data.COLLECTION_DATE == date]
+            a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
+            for value in analytes:
+                if((value in a)==False):
+                    return 'ERROR: No analyte named "{}" in data.'.format(value)
+            analytes = sorted(analytes)
+            query = query.loc[query.ANALYTE_NAME.isin(analytes)]
+            if(query.shape[0] == 0):
+                return 'ERROR: {} has no data for all of the analytes.'.format(date)
+            samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
+            if(samples < min_samples):
+                return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
+            else:
+                piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+                # return piv
         else:
-            analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
-            piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
-            title = date + '_correlation'
+            # If the data has already been calculated with the lag specified, retrieve it
+            if(self.jointData_is_set(lag=lag)==True): 
+                data = self.__jointData[0]
+            # Otherwise, calculate it
+            else:
+                data = self.getJointData(analytes, lag=lag)
+                self.set_jointData(data=data, lag=lag)
+            # get new range based on the lag and create the pivor table to be able to do the correlation
+            dateStart, dateEnd = self.__getLagDate(date, lagDays=lag)
+            dateRange_key = str(dateStart.date()) + " - " + str(dateEnd.date())
+            piv = pd.DataFrame(data.loc[dateRange_key]).unstack().T
+            piv.index = piv.index.droplevel()
+            piv = pd.DataFrame(piv).dropna(axis=0, how='all')
+            num_NaNs = int(piv.isnull().sum().sum())
+            samples = (piv.shape[0]*piv.shape[1])-num_NaNs
+            for col in piv.columns:
+                piv[col] = piv[col].astype('float64', errors = 'raise')
+            if(lag>0):
+                date = dateRange_key
+            # return piv
+        title = date + '_correlation'
 
-            sns.set_style("white", {"axes.facecolor": "0.95"})
-            g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
-            g.fig.suptitle(title, fontweight='bold', y=1.08, fontsize=25)
-            g.map_lower(sns.regplot, lowess=True, ci=False, line_kws={'color': 'red', 'lw': 3},
-                                                            scatter_kws={'color': 'black', 's': 20})
-            g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
-            g.map_upper(self.__plotUpperHalf)
-            for ax in g.axes.flat: 
-                ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
-            g.fig.subplots_adjust(wspace=0.3, hspace=0.3)
-            ax = plt.gca()
+        sns.set_style("white", {"axes.facecolor": "0.95"})
+        g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
+        g.fig.suptitle(title, fontweight='bold', y=1.08, fontsize=25)
+        g.map_lower(sns.regplot, lowess=True, ci=False, line_kws={'color': 'red', 'lw': 3},
+                                                        scatter_kws={'color': 'black', 's': 20})
+        g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
+        g.map_upper(self.__plotUpperHalf)
+        for ax in g.axes.flat: 
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        g.fig.subplots_adjust(wspace=0.3, hspace=0.3)
+        ax = plt.gca()
 
-            props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-            ax.text(1.3, 3, 'Date:  {}\n\nSamples used:     {}'.format(date, samples), transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
-            # Add titles to the diagonal axes/subplots
-            for ax, col in zip(np.diag(g.axes), piv.columns):
-                ax.set_title(col, y=0.82, fontsize=15)
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            g.fig.savefig(save_dir + '/' + date + '.png', bbox_inches="tight")
+        props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
+        ax.text(1.3, 3, 'Date:  {}\n\nWells:     {}\nSamples used:     {}'.format(date, piv.shape[0] ,samples), transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+        # Add titles to the diagonal axes/subplots
+        for ax, col in zip(np.diag(g.axes), piv.columns):
+            ax.set_title(col, y=0.82, fontsize=15)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        g.fig.savefig(save_dir + '/' + date + '.png', bbox_inches="tight")
 
     
     # Description: 
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells in specified year.
     # Parameters:
     #    year (int): year to be analyzed
+    #    analytes (list of strings): list of analyte names to use
+    #    remove_outliers (bool): choose whether or to remove the outliers.
+    #    z_threshold (float): z_score threshold to eliminate outliers
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_year(self, year, remove_outliers=True, z_threshold=4, min_samples=500, save_dir='plot_corr_by_year'):
+    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year'):
         data = self.data
         query = data
         query = self.simplify_data(data=query)
         query.COLLECTION_DATE = pd.to_datetime(query.COLLECTION_DATE)
         query = query[query.COLLECTION_DATE.dt.year == year]
-        a = list(np.unique(query.ANALYTE_NAME.values))
-        b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
-        analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
+        a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
+        for value in analytes:
+            if((value in a)==False):
+                return 'ERROR: No analyte named "{}" in data.'.format(value)
+        analytes = sorted(analytes)
         query = query.loc[query.ANALYTE_NAME.isin(analytes)]
         if(query.shape[0] == 0):
             return 'ERROR: {} has no data for the 6 analytes.'.format(year)
         samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
         if(samples < min_samples):
             return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
-        if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
-            return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(year)
         else:
-            analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+            # return piv
             # Remove outliers
             if(remove_outliers):
                 piv = self.remove_outliers(piv, z_threshold=z_threshold)
@@ -1015,157 +1055,185 @@ class functions:
     
 
     # Description: 
-    #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. Only uses the 6 important analytes. The data is also clustered into n_clusters.
+    #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. The data is also clustered into n_clusters.
     # Parameters:
     #    date (string): date to be analyzed
+    #    analytes (list of strings): list of analyte names to use
+    #    lag (int): number of days to look ahead and behind the specified date (+/-)
     #    n_clusters (int): number of clusters to split the data into.
     #    filter (bool): Flag to indicate well filtering.
-    #    filter_well_by (list of strings): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
-    #    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
-    #    min_samples (int): minimum number of samples the result should contain in order to execute.
-    #    show_labels (bool): choose whether or not to show the name of the wells.
-    #    save_dir (string): name of the directory you want to save the plot to #### filter=False, filter_well_by=['D'],
-    def plot_PCA_by_date(self, date, n_clusters=4, return_clusters=False, min_samples=3, show_labels=True, save_dir='plot_PCA_by_date', filter=False, col=None, equals=[]):
-        data = self.data
-        data = self.simplify_data(data=data)
-        query = data[data.COLLECTION_DATE == date]
-        if(filter):
-            filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
-            if('ERROR:' in str(filter_res)):
-                return filter_res
-            query_wells = list(query.STATION_ID.unique())
-            filter_wells = list(filter_res.index.unique())
-            intersect_wells = list(set(query_wells) & set(filter_wells))
-            if(len(intersect_wells)<=0):
-                return 'ERROR: No results for this query with the specifed filter parameters.'
-            query = query[query['STATION_ID'].isin(intersect_wells)]
-        a = list(np.unique(query.ANALYTE_NAME.values))
-        b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
-        analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
-        query = query.loc[query.ANALYTE_NAME.isin(analytes)]
-
-        if(query.shape[0] == 0):
-            return 'ERROR: {} has no data for the 6 analytes.'.format(date)
-        samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
-        if(samples < min_samples):
-            return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
-        if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
-            return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
-        else:
-            analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
-            piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
-            
-            
-            main_data = piv.dropna()
-            # # FILTERING CODE
-            # if(filter_code):
-            #     res_wells = self.filter_wells(filter_well_by)
-            #     main_data = main_data.loc[main_data.index.isin(res_wells)]
-            
-            scaler = StandardScaler()
-            X = scaler.fit_transform(main_data)
-            pca = PCA(n_components=2)
-            x_new = pca.fit_transform(X)
-            
-            pca_points = pd.DataFrame(x_new, columns=["x1", "x2"])
-            k_Means = KMeans(n_clusters=n_clusters, random_state=42)
-            model = k_Means.fit(pca_points[['x1', 'x2']])
-            predict = model.predict(pca_points[['x1', 'x2']])
-            # attach predicted cluster to original points
-            pca_points['predicted'] = model.labels_
-            # Create a dataframe for cluster_centers (centroids)
-            centroids = pd.DataFrame(model.cluster_centers_, columns=["x1", "x2"])
-            colors = ['red', 'blue', 'orange', 'purple', 'green', 'beige', 'pink', 'black', 'cadetblue', 'lightgreen']
-            pca_points['color'] = pca_points['predicted'].map(lambda p: colors[p])
-
-            fig, ax = plt.subplots(figsize=(10,10))
-            ax = plt.axes()
-
-            small_fontSize = 15
-            large_fontSize = 20
-            plt.rc('axes', titlesize=large_fontSize)
-            plt.rc('axes', labelsize=large_fontSize)
-            plt.rc('legend', fontsize=small_fontSize)
-            plt.rc('xtick', labelsize=small_fontSize)
-            plt.rc('ytick', labelsize=small_fontSize)
-
-            def myplot(score,coeff,labels=None,c='r', centroids=None):
-                xs = score.iloc[:,0]
-                ys = score.iloc[:,1]
-                n = coeff.shape[0]
-                scalex = 1.0/(xs.max() - xs.min())
-                scaley = 1.0/(ys.max() - ys.min())
-                scatt_X = xs * scalex
-                scatt_Y = ys * scaley
-                scatter = plt.scatter(scatt_X, scatt_Y, alpha=0.8, label='Wells', c=c)
-                centers = plt.scatter(centroids.iloc[:,0]* scalex, centroids.iloc[:,1]* scaley,
-                                      c = colors[0:n_clusters],
-                                      marker='X', s=550)
-
-                for i in range(n):
-                    arrow = plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'r', alpha = 0.9, head_width=0.05, head_length=0.05, label='Loadings')
-                    if labels is None:
-                        plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
-                    else:
-                        plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'g', ha = 'center', va = 'bottom')
-
-                if(show_labels):
-                    for x_pos, y_pos, label in zip(scatt_X, scatt_Y, main_data.index):
-                        ax.annotate(label, # The label for this point
-                        xy=(x_pos, y_pos), # Position of the corresponding point
-                        xytext=(7, 0),     # Offset text by 7 points to the right
-                        textcoords='offset points', # tell it to use offset points
-                        ha='left',         # Horizontally aligned to the left
-                        va='center',       # Vertical alignment is centered
-                        color='black', alpha=0.8)
-                plt.legend( [scatter, centers, arrow], ['Wells', 'Well centroids','Loadings'])
-
-            samples = x_new.shape[0]*piv.shape[1]
-            props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
-            ax.text(1.1, 0.5, 'Date:  {}\n\nSamples:          {}\nWells:               {}'.format(date, samples, x_new.shape[0]), 
-                        transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
-
-            plt.xlim(-1,1)
-            plt.ylim(-1,1)
-            plt.xlabel("PC{}".format(1))
-            plt.ylabel("PC{}".format(2))
-            ax.set_title('PCA Biplot - ' + date, fontweight='bold')
-            plt.grid(alpha=0.5)
-
-            #Call the function. Use only the 2 PCs.
-            myplot(pca_points,np.transpose(pca.components_[0:2, :]), labels=piv.columns, c=pca_points['color'], centroids=centroids)
-            plt.show()
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            fig.savefig(save_dir + '/' + 'PCA Biplot - '+ date +'.png', bbox_inches="tight")
-            
-            if(return_clusters):
-                stations = list(main_data.index)
-                color_wells = list(pca_points.color)
-                def merge(list1, list2): 
-                    merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))] 
-                    return merged_list
-                color_df = pd.DataFrame(merge(stations, color_wells), columns=['STATION_ID', 'color'])
-                if(self.get_Construction_Data==None):
-                    print('You need to set the GPS data first using the getConstructionData function.')
-                    return None
-                else:
-                    gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
-                    return gps_color
-    
-    
-    # Description: 
-    #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. Only uses the 6 important analytes. The data is also clustered into n_clusters.
-    # Parameters:
-    #    year (int): date to be analyzed
-    #    n_clusters (int): number of clusters to split the data into.
-    #    filter (bool): Flag to indicate well filtering.
-    #    filter_well_by (list of strings): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+    #    col (string): column name from the construction dataset that you want to filter by
+    #    equals (list of strings): value(s) to filter by in column col
     #    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    show_labels (bool): choose whether or not to show the name of the wells.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_PCA_by_year(self, year, n_clusters=4, return_clusters=False, min_samples=48, show_labels=True, save_dir='plot_PCA_by_year', filter=False, col=None, equals=[]):
+    def plot_PCA_by_date(self, date, analytes, lag=0, n_clusters=4, return_clusters=False, min_samples=3, show_labels=True, save_dir='plot_PCA_by_date', filter=False, col=None, equals=[]):
+        if(lag==0):
+            data = self.data
+            data = self.simplify_data(data=data)
+            query = data[data.COLLECTION_DATE == date]
+            if(filter):
+                filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
+                if('ERROR:' in str(filter_res)):
+                    return filter_res
+                query_wells = list(query.STATION_ID.unique())
+                filter_wells = list(filter_res.index.unique())
+                intersect_wells = list(set(query_wells) & set(filter_wells))
+                if(len(intersect_wells)<=0):
+                    return 'ERROR: No results for this query with the specifed filter parameters.'
+                query = query[query['STATION_ID'].isin(intersect_wells)]
+            a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
+            for value in analytes:
+                if((value in a)==False):
+                    return 'ERROR: No analyte named "{}" in data.'.format(value)
+            analytes = sorted(analytes)
+            query = query.loc[query.ANALYTE_NAME.isin(analytes)]
+
+            if(query.shape[0] == 0):
+                return 'ERROR: {} has no data for the 6 analytes.'.format(date)
+            samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
+            if(samples < min_samples):
+                return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
+            if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
+                return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
+            else:
+                analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+                piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
+                
+                # return piv
+        else:
+            # If the data has already been calculated with the lag specified, retrieve it
+            if(self.jointData_is_set(lag=lag)==True): 
+                data = self.__jointData[0]
+            # Otherwise, calculate it
+            else:
+                data = self.getJointData(analytes, lag=lag)
+                self.set_jointData(data=data, lag=lag)
+            # get new range based on the lag and create the pivor table to be able to do the correlation
+            dateStart, dateEnd = self.__getLagDate(date, lagDays=lag)
+            dateRange_key = str(dateStart.date()) + " - " + str(dateEnd.date())
+            piv = pd.DataFrame(data.loc[dateRange_key]).unstack().T
+            piv.index = piv.index.droplevel()
+            piv = pd.DataFrame(piv).dropna(axis=0, how='all')
+            num_NaNs = int(piv.isnull().sum().sum())
+            samples = (piv.shape[0]*piv.shape[1])-num_NaNs
+            for col in piv.columns:
+                piv[col] = piv[col].astype('float64', errors = 'raise')
+            if(lag>0):
+                date = dateRange_key
+            # return piv
+
+            
+        main_data = piv.dropna()
+        
+        scaler = StandardScaler()
+        X = scaler.fit_transform(main_data)
+        pca = PCA(n_components=2)
+        x_new = pca.fit_transform(X)
+        
+        pca_points = pd.DataFrame(x_new, columns=["x1", "x2"])
+        k_Means = KMeans(n_clusters=n_clusters, random_state=42)
+        model = k_Means.fit(pca_points[['x1', 'x2']])
+        predict = model.predict(pca_points[['x1', 'x2']])
+        # attach predicted cluster to original points
+        pca_points['predicted'] = model.labels_
+        # Create a dataframe for cluster_centers (centroids)
+        centroids = pd.DataFrame(model.cluster_centers_, columns=["x1", "x2"])
+        colors = ['red', 'blue', 'orange', 'purple', 'green', 'beige', 'pink', 'black', 'cadetblue', 'lightgreen']
+        pca_points['color'] = pca_points['predicted'].map(lambda p: colors[p])
+
+        fig, ax = plt.subplots(figsize=(10,10))
+        ax = plt.axes()
+
+        small_fontSize = 15
+        large_fontSize = 20
+        plt.rc('axes', titlesize=large_fontSize)
+        plt.rc('axes', labelsize=large_fontSize)
+        plt.rc('legend', fontsize=small_fontSize)
+        plt.rc('xtick', labelsize=small_fontSize)
+        plt.rc('ytick', labelsize=small_fontSize)
+
+        def myplot(score,coeff,labels=None,c='r', centroids=None):
+            xs = score.iloc[:,0]
+            ys = score.iloc[:,1]
+            n = coeff.shape[0]
+            scalex = 1.0/(xs.max() - xs.min())
+            scaley = 1.0/(ys.max() - ys.min())
+            scatt_X = xs * scalex
+            scatt_Y = ys * scaley
+            scatter = plt.scatter(scatt_X, scatt_Y, alpha=0.8, label='Wells', c=c)
+            centers = plt.scatter(centroids.iloc[:,0]* scalex, centroids.iloc[:,1]* scaley,
+                                    c = colors[0:n_clusters],
+                                    marker='X', s=550)
+
+            for i in range(n):
+                arrow = plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'r', alpha = 0.9, head_width=0.05, head_length=0.05, label='Loadings')
+                if labels is None:
+                    plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
+                else:
+                    plt.text(coeff[i,0]* 1.15, coeff[i,1] * 1.15, labels[i], color = 'g', ha = 'center', va = 'bottom')
+
+            if(show_labels):
+                for x_pos, y_pos, label in zip(scatt_X, scatt_Y, main_data.index):
+                    ax.annotate(label, # The label for this point
+                    xy=(x_pos, y_pos), # Position of the corresponding point
+                    xytext=(7, 0),     # Offset text by 7 points to the right
+                    textcoords='offset points', # tell it to use offset points
+                    ha='left',         # Horizontally aligned to the left
+                    va='center',       # Vertical alignment is centered
+                    color='black', alpha=0.8)
+            plt.legend( [scatter, centers, arrow], ['Wells', 'Well centroids','Loadings'])
+
+        samples = x_new.shape[0]*piv.shape[1]
+        props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
+        ax.text(1.1, 0.5, 'Date:  {}\n\nSamples:          {}\nWells:               {}'.format(date, samples, x_new.shape[0]), 
+                    transform=ax.transAxes, fontsize=20, fontweight='bold', verticalalignment='bottom', bbox=props)
+
+        plt.xlim(-1,1)
+        plt.ylim(-1,1)
+        plt.xlabel("PC{}".format(1))
+        plt.ylabel("PC{}".format(2))
+        ax.set_title('PCA Biplot - ' + date, fontweight='bold')
+        plt.grid(alpha=0.5)
+
+        #Call the function. Use only the 2 PCs.
+        myplot(pca_points,np.transpose(pca.components_[0:2, :]), labels=piv.columns, c=pca_points['color'], centroids=centroids)
+        plt.show()
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        fig.savefig(save_dir + '/' + 'PCA Biplot - '+ date +'.png', bbox_inches="tight")
+        
+        if(return_clusters):
+            stations = list(main_data.index)
+            color_wells = list(pca_points.color)
+            def merge(list1, list2): 
+                merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))] 
+                return merged_list
+            color_df = pd.DataFrame(merge(stations, color_wells), columns=['STATION_ID', 'color'])
+            if(self.get_Construction_Data==None):
+                print('You need to set the GPS data first using the getConstructionData function.')
+                return None
+            else:
+                gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
+                return gps_color
+    
+    
+    # Description: 
+    #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. The data is also clustered into n_clusters.
+    # Parameters:
+    #    year (int): year to be analyzed
+    #    analytes (list of strings): list of analyte names to use
+    #    lag (int): number of days to look ahead and behind the specified date (+/-)
+    #    n_clusters (int): number of clusters to split the data into.
+    #    filter (bool): Flag to indicate well filtering.
+    #    col (string): column name from the construction dataset that you want to filter by
+    #    equals (list of strings): value(s) to filter by in column col
+    #    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
+    #    min_samples (int): minimum number of samples the result should contain in order to execute.
+    #    show_labels (bool): choose whether or not to show the name of the wells.
+    #    save_dir (string): name of the directory you want to save the plot to
+    def plot_PCA_by_year(self, year, analytes, n_clusters=4, return_clusters=False, min_samples=10, show_labels=True, save_dir='plot_PCA_by_year', filter=False, col=None, equals=[]):
         data = self.data
         query = self.simplify_data(data=data)
         query.COLLECTION_DATE = pd.to_datetime(query.COLLECTION_DATE)
@@ -1180,9 +1248,11 @@ class functions:
             if(len(intersect_wells)<=0):
                 return 'ERROR: No results for this query with the specifed filter parameters.'
             query = query[query['STATION_ID'].isin(intersect_wells)]
-        a = list(np.unique(query.ANALYTE_NAME.values))
-        b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
-        analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
+        a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
+        for value in analytes:
+            if((value in a)==False):
+                return 'ERROR: No analyte named "{}" in data.'.format(value)
+        analytes = sorted(analytes)
         query = query.loc[query.ANALYTE_NAME.isin(analytes)]
 
         if(query.shape[0] == 0):
@@ -1301,14 +1371,15 @@ class functions:
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    show_labels (bool): choose whether or not to show the name of the wells.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_PCA_by_well(self, well_name, interpolate=False, frequency='2W', min_samples=48, show_labels=True, save_dir='plot_PCA_by_well'):
+    def plot_PCA_by_well(self, well_name, analytes, interpolate=False, frequency='2W', min_samples=10, show_labels=True, save_dir='plot_PCA_by_well'):
         data = self.data
         query = data[data.STATION_ID == well_name]
-        a = list(np.unique(query.ANALYTE_NAME.values))
-        b = ['TRITIUM','IODINE-129','SPECIFIC CONDUCTANCE', 'PH','URANIUM-238', 'DEPTH_TO_WATER']
-        analytes = self.__custom_analyte_sort(list(set(a) and set(b)))
+        a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
+        for value in analytes:
+            if((value in a)==False):
+                return 'ERROR: No analyte named "{}" in data.'.format(value)
+        analytes = sorted(analytes)
         query = query.loc[query.ANALYTE_NAME.isin(analytes)]
-        analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
         x = query[['COLLECTION_DATE', 'ANALYTE_NAME']]
         unique = ~x.duplicated()
         query = query[unique]
@@ -1635,3 +1706,91 @@ class functions:
             ax.vlines(i,wells_dateRange.loc[i,'START_DATE'],wells_dateRange.loc[i,'END_DATE'],colors='k')
         if(return_data):
             return wells_dateRange
+
+    
+    # Helper function to return start and end date for a date and a lag (+/- days)
+    def __getLagDate(self, date, lagDays=7):
+        date = pd.to_datetime(date)
+        dateStart = date - pd.DateOffset(days=lagDays)
+        dateEnd = date + pd.DateOffset(days=lagDays)
+        return dateStart, dateEnd
+
+    # Description: 
+    #    Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is all of the dates in the dataset. Many NaN should be expected.
+    # Parameters:
+    #    analytes (list of strings): list of analyte names to use
+    def getCleanData(self, analytes):
+        curr = self.data[['STATION_ID', 'COLLECTION_DATE', 'ANALYTE_NAME', 'RESULT']]
+        main = pd.DataFrame()
+        for ana in analytes:
+            main = pd.concat([main, curr[curr.ANALYTE_NAME==ana]])
+        piv = main.pivot_table(index=['COLLECTION_DATE'],columns=['ANALYTE_NAME', 'STATION_ID'], values='RESULT', aggfunc=np.mean)
+        piv.index = pd.to_datetime(piv.index)
+        piv.sort_index(inplace=True)
+        return piv
+
+    # Description: 
+    #    Creates a table which counts the number of wells within a range specified by a list of lag days.
+    # Parameters:
+    #    analytes (list of strings): list of analyte names to use
+    #    lag (list of ints): list of days to look ahead and behind the specified date (+/-)
+    def getCommonDates(self, analytes, lag=[3,7,10]):
+        piv = self.getCleanData(analytes)
+        dates = piv.index
+        names=['Dates', 'Lag']
+        tuples = [dates, lag]
+        finalData = pd.DataFrame(index=pd.MultiIndex.from_product(tuples, names=names), columns=['Date Ranges', 'Number of wells'])
+        for date in dates:
+            for i in lag:
+                dateStart, dateEnd = self.__getLagDate(date, lagDays=i)
+                mask = (piv.index > dateStart) & (piv.index <= dateEnd)
+                result = piv[mask].dropna(axis=1, how='all')
+                numWells = len(list(result.columns.get_level_values(1).unique()))
+                dateRange = str(dateStart.date()) + " - " + str(dateEnd.date())
+                finalData.loc[date, i]['Date Ranges'] = dateRange
+                finalData.loc[date, i]['Number of wells'] = numWells
+        return finalData
+    
+    # Description: 
+    #    Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is the date ranges secified by the lag.
+    # Parameters:
+    #    analytes (list of strings): list of analyte names to use
+    #    lag (int): number of days to look ahead and behind the specified date (+/-)
+    def getJointData(self, analytes, lag=3):
+        if(self.jointData_is_set(lag=lag)==True):
+            finalData = self.__jointData[0]
+            return finalData
+        piv = self.getCleanData(analytes)
+        dates = piv.index
+        dateRanges = []
+        for date in dates:
+            dateStart, dateEnd = self.__getLagDate(date, lagDays=lag)
+            dateRange = str(dateStart.date()) + " - " + str(dateEnd.date())
+            dateRanges.append(dateRange)
+        finalData = pd.DataFrame(columns=piv.columns, index=dateRanges)
+        numLoops = len(dates)
+        everySomePercent = []
+        print("Generating data with a lag of {}.".format(lag).upper())
+        print("Progress:")
+        for x in list(np.arange(1, 100, 1)):
+            everySomePercent.append(round((x/100)*numLoops))
+        for date, iteration in zip(dates, range(numLoops)):
+            if(iteration in everySomePercent):
+                print(str(round(iteration/numLoops*100)) + "%", end=', ')
+            dateStart, dateEnd = self.__getLagDate(date, lagDays=lag)
+            dateRange = str(dateStart.date()) + " - " + str(dateEnd.date())
+            mask = (piv.index > dateStart) & (piv.index <= dateEnd)
+            result = piv[mask].dropna(axis=1, how='all')
+            resultCollapse = pd.concat([result[col].dropna().reset_index(drop=True) for col in result], axis=1)
+            # HANDLE MULTIPLE VALUES
+            if(resultCollapse.shape[0]>1):
+                resultCollapse = pd.DataFrame(resultCollapse.mean()).T
+            resultCollapse = resultCollapse.rename(index={0: dateRange})
+            for ana_well in resultCollapse.columns:
+                finalData.loc[dateRange, ana_well] =  resultCollapse.loc[dateRange, ana_well]
+            # Save data to the pylenm global variable
+            self.set_jointData(data=finalData, lag=lag)
+        for col in finalData.columns:
+            finalData[col] = finalData[col].astype('float64')
+        print("Completed")
+        return finalData
