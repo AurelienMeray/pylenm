@@ -1,4 +1,4 @@
-__version__ = '0.1.10.7'
+__version__ = '0.1.10.8'
 
 from .pylenm import functions
 from . import pylenm_usages as usage
