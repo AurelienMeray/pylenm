@@ -6,7 +6,7 @@ This development is a part of the Advanced Long-Term Monitoring Systems (ALTEMIS
 The latest package can be downloaded from https://pypi.org/project/pylenm/
 
 # Demonstration notebooks:
-1 - Basics
-2 - Unsupervised learning
-3 – Supervised learning
-4 – Well optimization
+[1 – Basics](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/1%29%20pyLEnM%20-%20Basics.ipynb)<br>
+[2 - Unsupervised learning](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/2)%20pyLEnM%20-%20Unsupervised%20Learning.ipynb)<br>
+3 – Supervised learning<br>
+4 – Well optimization<br>
