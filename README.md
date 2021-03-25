@@ -3,7 +3,9 @@ This package aims to provide machine learning (ML) functions for performing comp
 
 This development is a part of the Advanced Long-Term Monitoring Systems (ALTEMIS) project. In this project, we propose to establish the new paradigm of long-term monitoring based on state-of-art technologies – in situ groundwater sensors, geophysics, drone/satellite-based remote sensing, reactive transport modeling, and AI – that will improve effectiveness and robustness, while reducing the overall cost. In particular, we focus on (1) spatially integrative technologies for monitoring system vulnerabilities – surface cap systems and groundwater/surface water interfaces, and (2) in situ monitoring technologies for monitoring master variables that control or are associated with contaminant plume mobility and direction. This system transforms the monitoring paradigm from reactive monitoring – respond after plume anomalies are detected – to proactive monitoring – detect the changes associated with the plume mobility before concentration anomalies occur.
 
-The latest package can be downloaded from https://pypi.org/project/pylenm/
+The latest package can be downloaded from: https://pypi.org/project/pylenm/
+
+More information on the project can be found here: https://altemis.lbl.gov/ai-for-soil-and-groundwater-contamination/ 
 
 # Demonstration notebooks:
 [1 – Basics](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/1%29%20pyLEnM%20-%20Basics.ipynb)<br>
