@@ -12,9 +12,9 @@ The latest package can be downloaded from https://pypi.org/project/pylenm/
 4 – Well optimization<br>
 
 # Contributors:
-Aurelien Meray
-Haruko Wainwright
-Himanshu Upadhyay
-Masudur Siddiquee
-Savannah Sturla
-Nivedita Patel
+Aurelien Meray<br>
+Haruko Wainwright<br>
+Himanshu Upadhyay<br>
+Masudur Siddiquee<br>
+Savannah Sturla<br>
+Nivedita Patel<br>
