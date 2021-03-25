@@ -7,6 +7,14 @@ The latest package can be downloaded from https://pypi.org/project/pylenm/
 
 # Demonstration notebooks:
 [1 – Basics](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/1%29%20pyLEnM%20-%20Basics.ipynb)<br>
-[2 - Unsupervised learning](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/2)%20pyLEnM%20-%20Unsupervised%20Learning.ipynb)<br>
+[2 - Unsupervised learning](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/2%29%20pyLEnM%20-%20Unsupervised%20Learning.ipynb)<br>
 3 – Supervised learning<br>
 4 – Well optimization<br>
+
+# Contributors:
+Aurelien Meray
+Haruko Wainwright
+Himanshu Upadhyay
+Masudur Siddiquee
+Savannah Sturla
+Nivedita Patel
