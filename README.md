@@ -13,6 +13,9 @@ More information on the project can be found here: https://altemis.lbl.gov/ai-fo
 3 – Supervised learning<br>
 [4 – Well optimization](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/4%29%20pyLEnM%20-%20Well%20Optimization.ipynb)<br>
 
+# Demonstration data:
+The data used in the demonstration notebooks above can be downloaded [here]( https://github.com/AurelienMeray/pylenm/tree/master/notebooks/data).
+
 # Contributors:
 Aurelien Meray<br>
 Haruko Wainwright<br>
