@@ -1794,3 +1794,156 @@ class functions:
             finalData[col] = finalData[col].astype('float64')
         print("Completed")
         return finalData
+    
+    # Error Metric: Mean Squared Error 
+    def mse(self, y_true, y_pred):
+        return mean_squared_error(y_true, y_pred)
+
+    # Description: 
+    #    Returns the best Gaussian Process model for a given X and y.
+    # Parameters:
+    #    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
+    #    smooth (bool): flag to toggle WhiteKernel on and off
+    def get_Best_GP(self, X, y, smooth=True):
+        gp = GaussianProcessRegressor(normalize_y=True)
+        # Kernel models
+        if(smooth):
+            k1 = Matern(length_scale=400, nu=1.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k2 = Matern(length_scale=800, nu=1.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k3 = Matern(length_scale=1200, nu=1.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k4 = Matern(length_scale=400, nu=1.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k5 = Matern(length_scale=800, nu=1.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k6 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k7 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k8 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k9 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k10 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k11 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k12 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+        else:
+            k1 = Matern(length_scale=400, nu=1.5, length_scale_bounds=(100.0, 5000.0))
+            k2 = Matern(length_scale=800, nu=1.5, length_scale_bounds=(100.0, 5000.0))
+            k3 = Matern(length_scale=1200, nu=1.5, length_scale_bounds=(100.0, 5000.0))
+            k4 = Matern(length_scale=400, nu=1.5, length_scale_bounds=(100.0, 5000.0))
+            k5 = Matern(length_scale=800, nu=1.5, length_scale_bounds=(100.0, 5000.0))
+            k6 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k7 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k8 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k9 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k10 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k11 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k12 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+        parameters = {'kernel': [k1,k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12]}
+        model = GridSearchCV(gp, parameters)
+        model.fit(X, y)
+        return model
+
+    # Description: 
+    #    Fits Gaussian Process for X and y and returns both the GP model and the predicted values
+    # Parameters:
+    #    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
+    #    xx (array floats): prediction locations
+    #    model (GP model): model to fit
+    #    smooth (bool): flag to toggle WhiteKernel on and off
+    def fit_gp(self, X, y, xx, model=None, smooth=True):
+        if(model==None):
+            gp = self.get_Best_GP(X, y, smooth) # selects best kernel params to fit
+        else:
+            gp = model
+        gp.fit(X, y)
+        y_pred = gp.predict(xx)
+        return gp, y_pred
+
+    # Description: 
+    #    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses Linear regression to generate trendline adds the values to the GP map.
+    # Parameters:
+    #    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
+    #    xx (array floats): prediction locations
+    #    model (GP model): model to fit
+    #    smooth (bool): flag to toggle WhiteKernel on and off
+    def interpolate_topo(self, X, y, xx, model=None, smooth=True):
+        lr = LinearRegression()
+        lr.fit(X, y)
+        y_est = lr.predict(X)
+        residuals = y - y_est
+        if(model==None):
+            model = self.get_Best_GP(X, residuals, smooth=smooth)
+        else:
+            model = model
+        lr_trend = lr.predict(xx)
+        r_map = model.predict(xx)
+        y_map = lr_trend + r_map
+        return y_map, r_map, residuals, lr_trend
+
+    # Helper fucntion for get_Best_Wells
+    def __get_Best_Well(self, X, y, xx, ref, selected, leftover, verbose=True, smooth=True, model=None):
+        num_selected=len(selected)
+        errors = []
+        if(model==None):
+            if(len(selected)<5):
+                model, pred = self.fit_gp(X, y, xx)
+            else:
+                model = None
+        else:
+            model=model
+        if(verbose):  
+            print("# of wells to choose from: ", len(leftover))
+        if(num_selected==0):
+            if(verbose): 
+                print("Selecting first well")
+            for ix in leftover:
+                y_pred, r_map, residuals, lr_trend = self.interpolate_topo(X[ix:ix+1,:], y[ix:ix+1], xx, model, smooth)
+                y_err = self.mse(ref, y_pred)
+                errors.append((ix, y_err))
+        
+        if(num_selected > 0):
+            for ix in leftover:
+                joined = selected + [ix]
+                y_pred, r_map, residuals, lr_trend = self.interpolate_topo(X[joined,:], y[joined], xx, model, smooth)
+                y_err = self.mse(ref, y_pred)
+                errors.append((ix, y_err))
+            
+        err_ix = [x[0] for x in errors]
+        err_vals = [x[1] for x in errors]
+        min_val = min(err_vals)
+        min_ix = err_ix[err_vals.index(min(err_vals))]
+        if(verbose):
+            print("Selected well: {} with a MSE error of {}\n".format(min_ix, min_val))
+        return min_ix, min_val
+
+    # Description: 
+    #    Optimization function to select a subset of wells as to minimizes the MSE from a reference map
+    # Parameters:
+    #    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
+    #    xx (array floats): prediction locations
+    #    ref (array): reference values for xx locations
+    #    initial (list of ints): indices of wells as the starting wells for optimization
+    #    verbose (bool): flag to toggle details of the well selection process
+    #    model (GP model): model to fit
+    #    smooth (bool): flag to toggle WhiteKernel on and off
+    def get_Best_Wells(self, X, y, xx, ref, initial, max_wells, verbose=True, smooth=True, model=None):
+        tot_err = []
+        selected = initial
+        leftover = list(range(0, X.shape[0])) # all indexes from 0 to number of well
+        
+        # Remove the initial set of wells from pool of well indices to choose from
+        for i in initial:
+            leftover.remove(i)
+
+        for i in range(max_wells-len(selected)):
+            if(i==0): # select first well will min error
+                well_ix, err = self.__get_Best_Well(X, y, xx, ref, selected, leftover, verbose, smooth, model)
+                selected.append(well_ix)
+                leftover.remove(well_ix)
+                tot_err.append(err)
+            else:
+                well_ix, err = self.__get_Best_Well(X, y, xx, ref, selected, leftover, verbose, smooth, model)
+                selected.append(well_ix)
+                leftover.remove(well_ix)
+                tot_err.append(err)
+        print(selected)
+        return selected, tot_err

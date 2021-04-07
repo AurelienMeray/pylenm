@@ -337,6 +337,56 @@ __usage['getJointData'] = """
     {}lag (int):{} number of days to look ahead and behind the specified date (+/-)
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be)
 
+__usage['get_Best_GP'] = """
+{}get_Best_GP{} (X, y, smooth=True)
+{}Description:{} 
+    Returns the best Gaussian Process model for a given X and y.
+{}Parameters:{}
+    {}X (array):{} array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    {}y (array of floats):{} array of size (number of wells) where each value corresponds to a concentration value at a well.
+    {}smooth (bool):{} flag to toggle WhiteKernel on and off
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['fit_gp'] = """
+{}get_Best_GP{} (X, y, xx, model=None, smooth=True)
+{}Description:{} 
+    Returns the best Gaussian Process model for a given X and y.
+{}Parameters:{}
+    {}X (array):{} array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    {}y (array of floats):{} array of size (number of wells) where each value corresponds to a concentration value at a well.
+    {}xx (array of floats):{} prediction locations
+    {}model (GP model):{} model to fit
+    {}smooth (bool):{} flag to toggle WhiteKernel on and off
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['interpolate_topo'] = """
+{}interpolate_topo{} (X, y, xx, model=None, smooth=True)
+{}Description:{} 
+    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses Linear regression to generate trendline adds the values to the GP map.
+{}Parameters:{}
+    {}X (array):{} array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    {}y (array of floats):{} array of size (number of wells) where each value corresponds to a concentration value at a well.
+    {}xx (array of floats):{} prediction locations
+    {}model (GP model):{} model to fit
+    {}smooth (bool):{} flag to toggle WhiteKernel on and off
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+__usage['get_Best_Wells'] = """
+{}get_Best_Wells{} (X, y, xx, model=None, smooth=True)
+{}Description:{} 
+    Optimization function to select a subset of wells as to minimizes the MSE from a reference map
+{}Parameters:{}
+    {}X (array):{} array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    {}y (array of floats):{} array of size (number of wells) where each value corresponds to a concentration value at a well.
+    {}xx (array of floats):{} prediction locations
+    {}ref (array):{} reference values for xx locations
+    {}initial (list of ints):{} indices of wells as the starting wells for optimization
+    {}verbose (bool):{} flag to toggle details of the well selection process
+    {}smooth (bool):{} flag to toggle WhiteKernel on and off
+    {}model (GP model):{} model to fit
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+
+
 
 def get_FunctionDescription(function=None):
     if (function == None):
