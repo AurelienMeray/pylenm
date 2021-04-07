@@ -337,6 +337,7 @@ __usage['getJointData'] = """
     {}lag (int):{} number of days to look ahead and behind the specified date (+/-)
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be)
 
+<<<<<<< HEAD
 __usage['get_Best_GP'] = """
 {}get_Best_GP{} (X, y, smooth=True)
 {}Description:{} 
@@ -387,6 +388,8 @@ __usage['get_Best_Wells'] = """
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 
+=======
+>>>>>>> eba14e40f8e1f8043ff3418d9cf057584f620b24
 
 def get_FunctionDescription(function=None):
     if (function == None):

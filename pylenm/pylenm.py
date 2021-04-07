@@ -1793,6 +1793,7 @@ class functions:
         for col in finalData.columns:
             finalData[col] = finalData[col].astype('float64')
         print("Completed")
+<<<<<<< HEAD
         return finalData
     
     # Error Metric: Mean Squared Error 
@@ -1947,3 +1948,6 @@ class functions:
                 tot_err.append(err)
         print(selected)
         return selected, tot_err
+=======
+        return finalData
+>>>>>>> eba14e40f8e1f8043ff3418d9cf057584f620b24
