@@ -20,10 +20,16 @@ from supersmoother import SuperSmoother
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern
+from sklearn.gaussian_process.kernels import WhiteKernel
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error
 import scipy.stats as stats
 import warnings
 warnings.filterwarnings("ignore")
-from pyproj import Proj
+from pyproj import Proj, Transformer
 from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON, 
                         LayersControl, Icon, Marker,FullScreenControl,
                         CircleMarker, Popup, AwesomeIcon) 
@@ -1793,7 +1799,6 @@ class functions:
         for col in finalData.columns:
             finalData[col] = finalData[col].astype('float64')
         print("Completed")
-<<<<<<< HEAD
         return finalData
     
     # Error Metric: Mean Squared Error 
@@ -1948,6 +1953,3 @@ class functions:
                 tot_err.append(err)
         print(selected)
         return selected, tot_err
-=======
-        return finalData
->>>>>>> eba14e40f8e1f8043ff3418d9cf057584f620b24

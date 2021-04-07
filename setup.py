@@ -43,7 +43,7 @@ setup(name='pylenm',
         'matplotlib',
         'statsmodels',
         'scipy',
-        'pyproj'
+        'pyproj',
         'datetime',
         'sklearn',
         'supersmoother',
