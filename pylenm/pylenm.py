@@ -21,9 +21,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Matern
-from sklearn.gaussian_process.kernels import WhiteKernel
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error
 import scipy.stats as stats
@@ -1863,29 +1864,48 @@ class functions:
         return gp, y_pred
 
     # Description: 
-    #    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses Linear regression to generate trendline adds the values to the GP map.
+    #    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses regression to generate trendline adds the values to the GP map.
     # Parameters:
-    #    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    #    X (dataframe): training values. Must include "Easting" and "Northing" columns.
     #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
     #    xx (array floats): prediction locations
+    #    ft (list of stings): feature names to train on
+    #    regression (string): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
     #    model (GP model): model to fit
     #    smooth (bool): flag to toggle WhiteKernel on and off
-    def interpolate_topo(self, X, y, xx, model=None, smooth=True):
-        lr = LinearRegression()
-        lr.fit(X, y)
-        y_est = lr.predict(X)
-        residuals = y - y_est
-        if(model==None):
-            model = self.get_Best_GP(X, residuals, smooth=smooth)
+    def interpolate_topo(self, X, y, xx, ft=['Elevation'], model=None, smooth=True, regression='linear'):
+        if(regression.lower()=='linear'):
+            reg = LinearRegression()
+        if(regression.lower()=='rf'):
+            reg = RandomForestRegressor(n_estimators=200, random_state=42)
+        if(regression.lower()=='ridge'):
+            reg = make_pipeline(PolynomialFeatures(3), Ridge())
+        if(regression.lower()=='lasso'):
+            reg = make_pipeline(PolynomialFeatures(3), Lasso())
+        if(all(elem in list(xx.columns) for elem in ft)):
+            reg.fit(X[ft], y)
+            y_est = reg.predict(X[ft])
+            residuals = y - y_est
+            if(model==None):
+                model = self.get_Best_GP(X[['Easting','Northing']], residuals, smooth=smooth)
+            else:
+                model = model
+            reg_trend = reg.predict(xx[ft])
         else:
-            model = model
-        lr_trend = lr.predict(xx)
-        r_map = model.predict(xx)
-        y_map = lr_trend + r_map
-        return y_map, r_map, residuals, lr_trend
+            reg.fit(X[['Easting','Northing']], y)
+            y_est = reg.predict(X[['Easting','Northing']])
+            residuals = y - y_est
+            if(model==None):
+                model = self.get_Best_GP(X[['Easting','Northing']], residuals, smooth=smooth)
+            else:
+                model = model
+            reg_trend = reg.predict(xx)
+        r_map = model.predict(xx[['Easting','Northing']])
+        y_map = reg_trend + r_map
+        return y_map, r_map, residuals, reg_trend
 
     # Helper fucntion for get_Best_Wells
-    def __get_Best_Well(self, X, y, xx, ref, selected, leftover, verbose=True, smooth=True, model=None):
+    def __get_Best_Well(self, X, y, xx, ref, selected, leftover, ft=['Elevation'], regression='linear', verbose=True, smooth=True, model=None):
         num_selected=len(selected)
         errors = []
         if(model==None):
@@ -1901,14 +1921,14 @@ class functions:
             if(verbose): 
                 print("Selecting first well")
             for ix in leftover:
-                y_pred, r_map, residuals, lr_trend = self.interpolate_topo(X[ix:ix+1,:], y[ix:ix+1], xx, model, smooth)
+                y_pred, r_map, residuals, lr_trend = self.interpolate_topo(X=X.iloc[ix:ix+1,:], y=y[ix:ix+1], xx=xx, ft=ft, regression=regression, model=model, smooth=smooth)
                 y_err = self.mse(ref, y_pred)
                 errors.append((ix, y_err))
         
         if(num_selected > 0):
             for ix in leftover:
                 joined = selected + [ix]
-                y_pred, r_map, residuals, lr_trend = self.interpolate_topo(X[joined,:], y[joined], xx, model, smooth)
+                y_pred, r_map, residuals, lr_trend = self.interpolate_topo(X=X.iloc[joined,:], y=y[joined], xx=xx, ft=ft, regression=regression, model=model, smooth=smooth)
                 y_err = self.mse(ref, y_pred)
                 errors.append((ix, y_err))
             
@@ -1927,11 +1947,14 @@ class functions:
     #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
     #    xx (array floats): prediction locations
     #    ref (array): reference values for xx locations
+    #    max_wells (int):{} number of wells to optimize for
+    #    ft (list of stings): feature names to train on
+    #    regression (string): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
     #    initial (list of ints): indices of wells as the starting wells for optimization
     #    verbose (bool): flag to toggle details of the well selection process
     #    model (GP model): model to fit
     #    smooth (bool): flag to toggle WhiteKernel on and off
-    def get_Best_Wells(self, X, y, xx, ref, initial, max_wells, verbose=True, smooth=True, model=None):
+    def get_Best_Wells(self, X, y, xx, ref, initial, max_wells, ft=['Elevation'], regression='linear', verbose=True, smooth=True, model=None):
         tot_err = []
         selected = initial
         leftover = list(range(0, X.shape[0])) # all indexes from 0 to number of well
@@ -1942,12 +1965,12 @@ class functions:
 
         for i in range(max_wells-len(selected)):
             if(i==0): # select first well will min error
-                well_ix, err = self.__get_Best_Well(X, y, xx, ref, selected, leftover, verbose, smooth, model)
+                well_ix, err = self.__get_Best_Well(X=X,y=y, xx=xx, ref=ref, selected=selected, leftover=leftover, ft=ft, regression=regression, verbose=verbose, smooth=smooth, model=model)
                 selected.append(well_ix)
                 leftover.remove(well_ix)
                 tot_err.append(err)
             else:
-                well_ix, err = self.__get_Best_Well(X, y, xx, ref, selected, leftover, verbose, smooth, model)
+                well_ix, err = self.__get_Best_Well(X=X,y=y, xx=xx, ref=ref, selected=selected, leftover=leftover, ft=ft, regression=regression, verbose=verbose, smooth=smooth, model=model)
                 selected.append(well_ix)
                 leftover.remove(well_ix)
                 tot_err.append(err)

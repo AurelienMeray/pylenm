@@ -360,19 +360,21 @@ __usage['fit_gp'] = """
 """.format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['interpolate_topo'] = """
-{}interpolate_topo{} (X, y, xx, model=None, smooth=True)
+{}interpolate_topo{} (X, y, xx, ft=['Elevation'], regression='linear', model=None, smooth=True):
 {}Description:{} 
-    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses Linear regression to generate trendline adds the values to the GP map.
+    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses regression to generate trendline adds the values to the GP map.
 {}Parameters:{}
-    {}X (array):{} array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+    {}X (dataframe):{} training values. Must include "Easting" and "Northing" columns.
     {}y (array of floats):{} array of size (number of wells) where each value corresponds to a concentration value at a well.
     {}xx (array of floats):{} prediction locations
+    {}ft (list of stings):{} feature names to train on
+    {}regression (string):{} choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
     {}model (GP model):{} model to fit
     {}smooth (bool):{} flag to toggle WhiteKernel on and off
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['get_Best_Wells'] = """
-{}get_Best_Wells{} (X, y, xx, model=None, smooth=True)
+{}get_Best_Wells{} (X, y, xx, ref, initial, max_wells, ft=['Elevation'], regression='linear', verbose=True, smooth=True, model=None):
 {}Description:{} 
     Optimization function to select a subset of wells as to minimizes the MSE from a reference map
 {}Parameters:{}
@@ -380,11 +382,14 @@ __usage['get_Best_Wells'] = """
     {}y (array of floats):{} array of size (number of wells) where each value corresponds to a concentration value at a well.
     {}xx (array of floats):{} prediction locations
     {}ref (array):{} reference values for xx locations
+    {}max_wells (int):{} number of wells to optimize for
+    {}ft (list of stings):{} feature names to train on
+    {}regression (string):{} choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
     {}initial (list of ints):{} indices of wells as the starting wells for optimization
     {}verbose (bool):{} flag to toggle details of the well selection process
     {}smooth (bool):{} flag to toggle WhiteKernel on and off
     {}model (GP model):{} model to fit
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 
 
