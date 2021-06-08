@@ -10,8 +10,8 @@ More information on the project can be found here: https://altemis.lbl.gov/ai-fo
 # Demonstration notebooks:
 [1 – Basics](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/1%29%20pyLEnM%20-%20Basics.ipynb)<br>
 [2 - Unsupervised learning](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/2%29%20pyLEnM%20-%20Unsupervised%20Learning.ipynb)<br>
-[3 – Supervised learning](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/3%29%20pyLEnM%20-%20Water%20Table%20Estimation.ipynb)<br>
-[4 – Well optimization](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/4%29%20pyLEnM%20-%20Well%20Optimization.ipynb)<br>
+[3 – Water Table estimation & Well Optimization](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/3%29%20pyLEnM%20-%20Water%20Table%20Estimation.ipynb)<br>
+
 
 # Demonstration data:
 The data used in the demonstration notebooks above can be downloaded [here]( https://github.com/AurelienMeray/pylenm/tree/master/notebooks/data).
