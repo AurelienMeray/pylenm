@@ -24,6 +24,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error
