@@ -1,2 +1,2 @@
-*.csv filter=lfs diff=lfs merge=lfs -text
+# *.csv filter=lfs diff=lfs merge=lfs -text
 FASB_Data_thru_3Q2015.csv !text !filter !merge !diff
