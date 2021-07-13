@@ -1103,10 +1103,11 @@ class functions:
             samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
             if(samples < min_samples):
                 return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
-            if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
-                return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
+            # if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
+            #     return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
             else:
-                analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+                # analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+                analytes = sorted(analytes)
                 piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
                 
                 # return piv
@@ -1268,10 +1269,11 @@ class functions:
         samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
         if(samples < min_samples):
             return 'ERROR: {} does not have at least {} samples.'.format(year, min_samples)
-        if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
-            return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(year)
+        # if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
+        #     return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(year)
         else:
-            analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+            # analytes = self.__custom_analyte_sort(np.unique(query.ANALYTE_NAME.values))
+            analytes = sorted(analytes)
             piv = query.reset_index().pivot_table(index = 'STATION_ID', columns='ANALYTE_NAME', values='RESULT',aggfunc=np.mean)
             
             main_data = piv.dropna()
@@ -1407,8 +1409,8 @@ class functions:
         samples = query[['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME']].duplicated().value_counts()[0]
         if(samples < min_samples):
             return 'ERROR: {} does not have at least {} samples.'.format(date, min_samples)
-        if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
-            return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(date)
+        # if(len(np.unique(query.ANALYTE_NAME.values)) < 6):
+        #     return 'ERROR: {} has less than the 6 analytes we want to analyze.'.format(well_name)
         else:
             scaler = StandardScaler()
             X = scaler.fit_transform(piv.dropna())
