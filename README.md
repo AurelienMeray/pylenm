@@ -10,7 +10,7 @@ More information on the project can be found here: https://altemis.lbl.gov/ai-fo
 # Demonstration notebooks:
 [1 – Basics](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/1%29%20pyLEnM%20-%20Basics.ipynb)<br>
 [2 - Unsupervised learning](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/2%29%20pyLEnM%20-%20Unsupervised%20Learning.ipynb)<br>
-[3 – Water Table Estimation & Well Optimization](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/3%29%20pyLEnM%20-%20Water%20Table%20Estimation%20%26%20Well%20Optimization.ipynb)<br>
+[3 – Water Table Estimation & Well Optimization](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/3%20pyLEnM%20-%20Water%20Table%20Spatial%20Estimation%20%26%20Well%20Optimization.ipynb)<br>
 [4 – Tritium Spatial Estimation](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/4%29%20pyLEnM%20-%20Tritium%20Spatial%20Estimation.ipynb)<br>
 [5 – Proxy Estimation (SC~Tritium)](https://colab.research.google.com/github/AurelienMeray/pylenm/blob/master/notebooks/5%29%20pyLEnM%20-%20Proxy%20Estimation%20(SC~Tritium).ipynb)<br>
 
