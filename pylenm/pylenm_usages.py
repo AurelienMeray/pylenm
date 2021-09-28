@@ -166,7 +166,7 @@ __usage['interpolate_well_data'] = """
 
 __usage['plot_corr_by_well'] = """
 {}plot_corr_by_well{}(well_name, interpolate=False, frequency='2W',
-        save_dir='plot_correlation')
+        save_dir='plot_correlation', log_transform=False)
 {}Description:{} 
     Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
 {}Parameters:{}
@@ -179,11 +179,12 @@ __usage['plot_corr_by_well'] = """
         See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. 
         (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+    {}log_transform (bool):{} use log(base 2 concentration)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_all_corr_by_well'] = """
 {}plot_all_corr_by_well{} (well_name, interpolate=False, frequency='2W',
-               save_dir='plot_correlation')
+               save_dir='plot_correlation', log_transform=False)
 {}Description:{} 
     Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
 {}Parameters:{}
@@ -195,10 +196,11 @@ __usage['plot_all_corr_by_well'] = """
     See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs.
     (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+    {}log_transform (bool):{} use log(base 2 concentration)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_corr_by_date_range'] = """
-{}plot_corr_by_date_range{} (date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date')
+{}plot_corr_by_date_range{} (date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False)
 {}Description:{} 
     Plots the correlations with the physical plots as well as the correlations of the important 
     analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
@@ -208,10 +210,11 @@ __usage['plot_corr_by_date_range'] = """
     {}lag (int):{} number of days to look ahead and behind the specified date (+/-)
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+    {}log_transform (bool):{} use log(base 2 concentration)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_corr_by_year'] = """
-{}plot_corr_by_year{}(year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year')
+{}plot_corr_by_year{}(year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False)
 {}Description:{} 
     Plots the correlations with the physical plots as well as the correlations of the important 
     analytes for ALL the wells in specified year.
@@ -222,7 +225,8 @@ __usage['plot_corr_by_year'] = """
     {}z_threshold (float):{} z_score threshold to eliminate outliers
     {}min_samples (int):{} minimum number of samples the result should contain in order to execute.
     {}save_dir (string):{} name of the directory you want to save the plot to
-""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
+    {}log_transform (bool):{} use log(base 2 concentration)
+""".format(bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be, bb, be)
 
 __usage['plot_MCL'] = """
 {}plot_MCL{} (well_name, analyte_name, year_interval=5, save_dir=‘plot_MCL’)

@@ -25,7 +25,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, RidgeCV, LassoCV
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error
 import scipy.stats as stats
@@ -722,7 +722,7 @@ class functions:
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
+    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False):
         data = self.data
         query = data[data.STATION_ID == well_name]
         a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
@@ -752,15 +752,20 @@ class functions:
                 return 'ERROR: {} does not have enough samples to plot.\n Try a different interpolation frequency'.format(well_name)
             return 'ERROR: {} does not have enough samples to plot.'.format(well_name)
         else:
-            scaler = StandardScaler()
-            pivScaled = scaler.fit_transform(piv)
-            pivScaled = pd.DataFrame(pivScaled, columns=piv.columns)
-            pivScaled.index = piv.index
-            piv = pivScaled
+            # scaler = StandardScaler()
+            # pivScaled = scaler.fit_transform(piv)
+            # pivScaled = pd.DataFrame(pivScaled, columns=piv.columns)
+            # pivScaled.index = piv.index
+            # piv = pivScaled
+            
             # Remove outliers
             if(remove_outliers):
                 piv = self.remove_outliers(piv, z_threshold=z_threshold)
             samples = piv.shape[0]
+
+            if(log_transform):
+                piv[piv <= 0] = 0.01
+                piv = np.log2(piv)
             
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -792,12 +797,12 @@ class functions:
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation'):
+    def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False):
         data = self.data
         wells = np.array(data.STATION_ID.values)
         wells = np.unique(wells)
         for well in wells:
-            self.plot_corr_by_well(well_name=well, analytes=analytes,remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir)
+            self.plot_corr_by_well(well_name=well, analytes=analytes,remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir, log_transform=log_transform)
         
     # Description: 
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
@@ -807,7 +812,7 @@ class functions:
     #    lag (int): number of days to look ahead and behind the specified date (+/-)
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to    
-    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date'):
+    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False):
         if(lag==0):
             data = self.data
             data = self.simplify_data(data=data)
@@ -848,6 +853,15 @@ class functions:
                 date = dateRange_key
             # return piv
         title = date + '_correlation'
+        # scaler = StandardScaler()
+        # pivScaled = scaler.fit_transform(piv)
+        # pivScaled = pd.DataFrame(pivScaled, columns=piv.columns)
+        # pivScaled.index = piv.index
+        # piv = pivScaled
+
+        if(log_transform):
+            piv[piv <= 0] = 0.01
+            piv = np.log2(piv)
 
         sns.set_style("white", {"axes.facecolor": "0.95"})
         g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -880,7 +894,7 @@ class functions:
     #    z_threshold (float): z_score threshold to eliminate outliers
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year'):
+    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False):
         data = self.data
         query = data
         query = self.simplify_data(data=query)
@@ -906,6 +920,15 @@ class functions:
             samples = piv.shape[0] * piv.shape[1]
 
             title = str(year) + '_correlation'
+            # scaler = StandardScaler()
+            # pivScaled = scaler.fit_transform(piv)
+            # pivScaled = pd.DataFrame(pivScaled, columns=piv.columns)
+            # pivScaled.index = piv.index
+            # piv = pivScaled
+
+            if(log_transform):
+                piv[piv <= 0] = 0.01
+                piv = np.log2(piv)
 
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -1828,9 +1851,9 @@ class functions:
             k7 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
             k8 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
             k9 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
-            k10 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
-            k11 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
-            k12 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k10 = Matern(length_scale=400, nu=np.inf, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k11 = Matern(length_scale=800, nu=np.inf, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
+            k12 = Matern(length_scale=1200, nu=np.inf, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
         else:
             k1 = Matern(length_scale=400, nu=1.5, length_scale_bounds=(100.0, 5000.0))
             k2 = Matern(length_scale=800, nu=1.5, length_scale_bounds=(100.0, 5000.0))
@@ -1841,9 +1864,9 @@ class functions:
             k7 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))
             k8 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))
             k9 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))
-            k10 = Matern(length_scale=400, nu=2.5, length_scale_bounds=(100.0, 5000.0))
-            k11 = Matern(length_scale=800, nu=2.5, length_scale_bounds=(100.0, 5000.0))
-            k12 = Matern(length_scale=1200, nu=2.5, length_scale_bounds=(100.0, 5000.0))
+            k10 = Matern(length_scale=400, nu=np.inf, length_scale_bounds=(100.0, 5000.0))
+            k11 = Matern(length_scale=800, nu=np.inf, length_scale_bounds=(100.0, 5000.0))
+            k12 = Matern(length_scale=1200, nu=np.inf, length_scale_bounds=(100.0, 5000.0))
         parameters = {'kernel': [k1,k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12]}
         model = GridSearchCV(gp, parameters)
         model.fit(X, y)
@@ -1877,14 +1900,17 @@ class functions:
     #    model (GP model): model to fit
     #    smooth (bool): flag to toggle WhiteKernel on and off
     def interpolate_topo(self, X, y, xx, ft=['Elevation'], model=None, smooth=True, regression='linear'):
+        alpha_Values = [1e-5, 5e-5, 0.0001, 0.0005, 0.005, 0.05, 0.1, 0.3, 1, 3, 5, 10, 15, 30, 80]
         if(regression.lower()=='linear'):
             reg = LinearRegression()
         if(regression.lower()=='rf'):
             reg = RandomForestRegressor(n_estimators=200, random_state=42)
         if(regression.lower()=='ridge'):
-            reg = make_pipeline(PolynomialFeatures(3), Ridge())
+            # reg = make_pipeline(PolynomialFeatures(3), Ridge())
+            reg = RidgeCV(alphas=alpha_Values)
         if(regression.lower()=='lasso'):
-            reg = make_pipeline(PolynomialFeatures(3), Lasso())
+            # reg = make_pipeline(PolynomialFeatures(3), Lasso())
+            reg = LassoCV(alphas=alpha_Values)
         if(all(elem in list(xx.columns) for elem in ft)):
             reg.fit(X[ft], y)
             y_est = reg.predict(X[ft])
