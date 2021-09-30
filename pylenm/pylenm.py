@@ -1838,8 +1838,8 @@ class functions:
     #    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
     #    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
     #    smooth (bool): flag to toggle WhiteKernel on and off
-    def get_Best_GP(self, X, y, smooth=True):
-        gp = GaussianProcessRegressor(normalize_y=True)
+    def get_Best_GP(self, X, y, smooth=True, seed = 42):
+        gp = GaussianProcessRegressor(normalize_y=True, random_state=seed)
         # Kernel models
         if(smooth):
             k1 = Matern(length_scale=400, nu=1.5, length_scale_bounds=(100.0, 5000.0))+WhiteKernel()
@@ -1899,12 +1899,12 @@ class functions:
     #    regression (string): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
     #    model (GP model): model to fit
     #    smooth (bool): flag to toggle WhiteKernel on and off
-    def interpolate_topo(self, X, y, xx, ft=['Elevation'], model=None, smooth=True, regression='linear'):
+    def interpolate_topo(self, X, y, xx, ft=['Elevation'], model=None, smooth=True, regression='linear', seed = 42):
         alpha_Values = [1e-5, 5e-5, 0.0001, 0.0005, 0.005, 0.05, 0.1, 0.3, 1, 3, 5, 10, 15, 30, 80]
         if(regression.lower()=='linear'):
             reg = LinearRegression()
         if(regression.lower()=='rf'):
-            reg = RandomForestRegressor(n_estimators=200, random_state=42)
+            reg = RandomForestRegressor(n_estimators=200, random_state=seed)
         if(regression.lower()=='ridge'):
             # reg = make_pipeline(PolynomialFeatures(3), Ridge())
             reg = RidgeCV(alphas=alpha_Values)
@@ -1916,7 +1916,7 @@ class functions:
             y_est = reg.predict(X[ft])
             residuals = y - y_est
             if(model==None):
-                model = self.get_Best_GP(X[['Easting','Northing']], residuals, smooth=smooth)
+                model = self.get_Best_GP(X[['Easting','Northing']], residuals, smooth=smooth, seed=seed)
             else:
                 model = model
             reg_trend = reg.predict(xx[ft])
@@ -1925,7 +1925,7 @@ class functions:
             y_est = reg.predict(X[['Easting','Northing']])
             residuals = y - y_est
             if(model==None):
-                model = self.get_Best_GP(X[['Easting','Northing']], residuals, smooth=smooth)
+                model = self.get_Best_GP(X[['Easting','Northing']], residuals, smooth=smooth, seed=seed)
             else:
                 model = model
             reg_trend = reg.predict(xx)
