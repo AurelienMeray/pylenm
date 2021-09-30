@@ -4,12 +4,14 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pylab
 import scipy
 import random
 import datetime
 import re
 import time
+from math import sqrt
 import matplotlib.dates as mdates
 from matplotlib.dates import date2num, num2date
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -1642,7 +1644,7 @@ class functions:
             sample_analyte[well] = sample[well]
         return sample_analyte
     
-    def cluster_data(self, data, n_clusters=4, log_transform=False, filter=False, filter_well_by=['D'], return_clusters=False):
+    def cluster_data_OLD(self, data, n_clusters=4, log_transform=False, filter=False, filter_well_by=['D'], return_clusters=False):
         if(filter):
             res_wells = self.filter_wells(filter_well_by)
             data = data.T
@@ -1678,7 +1680,63 @@ class functions:
                 gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                 return gps_color
 
-    def plot_all_time_series(self, analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
+    def cluster_data(self, data, analyte_name=["ANALYTE_NAME"], n_clusters=4, filter=False, col=None, equals=[], year_interval=5, y_label = 'Concentration', return_clusters=False ):
+        data = data.copy()
+        if(filter):
+            filter_res = self.filter_by_column(data=self.get_Construction_Data(), col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(data.columns)
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells))
+            print(intersect_wells)
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            data = data[intersect_wells]
+        data.index = date2num(data.index)
+        temp = data.T
+        k_Means = KMeans(n_clusters=n_clusters, random_state=43)
+        km = k_Means.fit(temp)
+        predict = km.predict(temp)
+        temp['predicted'] = km.labels_
+        colors = ['red', 'blue', 'orange', 'purple', 'green', 'pink', 'black', 'cadetblue', 'lightgreen','beige']
+        temp['color'] = temp['predicted'].map(lambda p: colors[p])
+        
+        fig, ax = plt.subplots(figsize=(10,10), dpi=100)
+        ax.minorticks_off()
+        ax = plt.axes()
+
+        color = temp['color']
+        for x in range(temp.shape[0]):
+            curr = data.iloc[:,x]
+            ax.plot(curr, label=curr.name, color=color[x])
+            
+        years = mdates.YearLocator(year_interval)  # every year
+        months = mdates.MonthLocator()  # every month
+        yearsFmt = mdates.DateFormatter('%Y') 
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(years)
+        ax.xaxis.set_major_locator(years)
+        ax.xaxis.set_major_formatter(yearsFmt)
+        ax.autoscale_view()
+        ax.set_xlabel("Years", fontsize=20)
+        plt.xticks(fontsize=20)
+        ax.set_ylabel(y_label, fontsize=20)
+        plt.yticks(fontsize=20)
+        ax.set_title("{}: {} clusters".format(analyte_name, n_clusters), fontsize=20)
+        if(return_clusters):
+            color_df = pd.DataFrame(temp['color'])
+            color_df['STATION_ID'] = color_df.index
+            if(self.get_Construction_Data==None):
+                print('You need to set the GPS data first using the setConstructionData function.')
+                return None
+            else:
+                gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
+                return gps_color
+        # if(return_data):
+        #     return color, temp
+
+    def plot_all_time_series_simple(self, analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
                              min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False, filter=False, col=None, equals=[]):
         data = self.simplify_data()
         if(filter):
@@ -1739,6 +1797,94 @@ class functions:
             ax.vlines(i,wells_dateRange.loc[i,'START_DATE'],wells_dateRange.loc[i,'END_DATE'],colors='k')
         if(return_data):
             return wells_dateRange
+
+
+    def plot_all_time_series(self, analyte_name=None, title='Dataset: Time ranges', x_label='Well', y_label='Year', x_label_size=8, marker_size=30,
+                            min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', sort_by_distance=True, basin_coordinate=[436642.70,3681927.09], log_transform=False, cmap=mpl.cm.rainbow, 
+                            drop_cols=[], return_data=False, filter=False, col=None, equals=[], cbar_min=None, cbar_max=None, reverse_y_axis=False, fontsize = 20, figsize=(20,6), dpi=300):
+        dt = self.getCleanData([analyte_name])
+        dt = dt[analyte_name] 
+        if(filter):
+            filter_res = self.filter_by_column(data=self.get_Construction_Data(), col=col, equals=equals)
+            if('ERROR:' in str(filter_res)):
+                return filter_res
+            query_wells = list(dt.columns.unique())
+            filter_wells = list(filter_res.index.unique())
+            intersect_wells = list(set(query_wells) & set(filter_wells) & set(dt.columns))
+            if(len(intersect_wells)<=0):
+                return 'ERROR: No results for this query with the specifed filter parameters.'
+            dt = dt[intersect_wells]
+        
+        dt = dt.interpolate()
+        well_info = self.get_Construction_Data()
+        shared_wells = list(set(well_info.index) & set(dt.columns))
+        dt = dt[shared_wells]
+        well_info = well_info.T[shared_wells]
+        dt = dt.reindex(sorted(dt.columns), axis=1)
+        well_info = well_info.reindex(sorted(well_info.columns), axis=1)
+        well_info = well_info.T
+        transformer = Transformer.from_crs("epsg:4326", "epsg:26917") # Latitude/Longitude to UTM
+        UTM_x, UTM_y = transformer.transform(well_info.LATITUDE, well_info.LONGITUDE)
+        X = np.vstack((UTM_x,UTM_y)).T
+        well_info = pd.DataFrame(X, index=list(well_info.index),columns=['Easting', 'Northing'])
+        well_info = self.add_dist_to_basin(well_info, basin_coordinate=basin_coordinate)
+        if(sort_by_distance):
+            well_info.sort_values(by=['dist_to_basin'], ascending = True, inplace=True)
+        dt = dt[well_info.index]
+        dt = dt.drop(drop_cols, axis=1) # DROP BAD ONES 
+        
+        if(log_transform):
+            dt[dt <= 0] = 0.00000001
+            dt = np.log10(dt)
+        wells = dt.columns
+        
+        if(cbar_min==None):
+            cbar_min = dt.min().min()
+        if(cbar_max==None):
+            cbar_max = dt.max().max() 
+        norm = mpl.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
+
+        fig, ax = plt.subplots(1, 2, sharex=False, figsize=figsize, dpi=dpi, gridspec_kw={'width_ratios': [40, 1]})
+        ax[0].set_xticks(range(len(wells)))
+        ax[0].set_xticklabels(wells, rotation='vertical', fontsize=x_label_size)
+
+        for col in wells:
+            curr_start = dt[col].first_valid_index()
+            curr_end =  dt[col].last_valid_index()
+            length = len(list(dt[col].loc[curr_start:curr_end].index))
+            color_vals = list(dt[col].loc[curr_start:curr_end])
+            color_vals = [cmap(norm(x)) for x in color_vals]
+            x = col
+            ys = list(dt[col].loc[curr_start:curr_end].index)
+            ax[0].scatter([x]*length, ys, c=color_vals, marker='o',lw=0,s=marker_size, alpha=0.75)
+            ax[0].scatter
+
+        x_label = x_label + ' (count: ' + str(dt.shape[1])+ ')'
+        ax[0].set_xlabel(x_label, fontsize=fontsize)
+        ax[0].set_ylabel(y_label, fontsize=fontsize)
+        ax[0].set_xlim([x_min_lim, x_max_lim])
+        ax[0].set_ylim([pd.to_datetime(y_min_date), pd.to_datetime(y_max_date)]) 
+        ax[0].plot([], [], ' ', label="Time series with at least {} days".format(min_days))
+        ax[0].set_facecolor((0, 0, 0,0.1))
+            
+        # COLORBAR
+        label_cb = "Concentration ({})".format(self.get_unit(analyte_name))
+        if(log_transform):
+            label_cb = "Log " + label_cb
+        cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
+                cax=ax[1], orientation='vertical')
+        cbar.set_label(label=label_cb,size=fontsize)
+
+        ax[0].tick_params(axis='y', labelsize=fontsize)
+        cbar.ax.tick_params(labelsize=fontsize)
+        plt.tight_layout()
+        if(reverse_y_axis):
+            ax[0].invert_yaxis()
+        if(analyte_name!=None):
+            title = title + ' (' + analyte_name + ')'
+        fig.suptitle(title, fontsize=fontsize, y=1.05)
+        if(return_data):
+            return dt
 
     
     # Helper function to return start and end date for a date and a lag (+/- days)
@@ -2005,3 +2151,16 @@ class functions:
                 tot_err.append(err)
         print(selected)
         return selected, tot_err
+
+    
+    def dist(self, p1, p2):
+        return sqrt(((p1[0]-p2[0])**2)+((p1[1]-p2[1])**2))
+
+    def add_dist_to_basin(self, XX, basin_coordinate=[436642.70,3681927.09], col_name='dist_to_basin'):
+        x1,y1 = basin_coordinate
+        distances = []
+        for i in range(XX.shape[0]):
+            x2,y2 = XX.iloc[i][0], XX.iloc[i][1]
+            distances.append(self.dist([x1,y1],[x2,y2]))
+        XX[col_name] = distances
+        return XX
