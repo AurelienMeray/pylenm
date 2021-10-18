@@ -38,7 +38,7 @@ from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON,
                         LayersControl, Icon, Marker,FullScreenControl,
                         CircleMarker, Popup, AwesomeIcon) 
 from ipywidgets import HTML
-
+plt.rcParams["font.family"] = "Times New Roman"
 
 class functions:
     
@@ -724,7 +724,7 @@ class functions:
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False):
+    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20, returnData=False, remove=[]):
         data = self.data
         query = data[data.STATION_ID == well_name]
         a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
@@ -760,14 +760,19 @@ class functions:
             # pivScaled.index = piv.index
             # piv = pivScaled
             
+            if(log_transform):
+                piv[piv <= 0] = 0.00000001
+                piv = np.log10(piv)
+
             # Remove outliers
             if(remove_outliers):
                 piv = self.remove_outliers(piv, z_threshold=z_threshold)
             samples = piv.shape[0]
 
-            if(log_transform):
-                piv[piv <= 0] = 0.01
-                piv = np.log2(piv)
+            idx = piv.index.date
+            dates = [dates.strftime('%Y-%m-%d') for dates in idx]
+            remaining = [i for i in dates if i not in remove]
+            piv = piv.loc[remaining]
             
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -776,8 +781,12 @@ class functions:
                                                             scatter_kws={'color': 'black', 's': 20})
             g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
             g.map_upper(self.__plotUpperHalf)
-            for ax in g.axes.flat: 
-                ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            for ax in g.axes.flat:
+                ax.tick_params("y", labelrotation=0, labelsize=fontsize)
+                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, fontsize=fontsize)
+                ax.set_xlabel(ax.get_xlabel(), fontsize=fontsize, fontweight='bold') #HERE
+                ax.set_ylabel(ax.get_ylabel(), fontsize=fontsize,fontweight='bold')
+                
             g.fig.subplots_adjust(wspace=0.3, hspace=0.3)
             ax = plt.gca()
 
@@ -789,6 +798,9 @@ class functions:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             g.fig.savefig(save_dir + '/' + well_name + file_extension + '.png', bbox_inches="tight")
+            if(returnData):
+                return piv
+            
     
     # Description: 
     #    Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
@@ -799,12 +811,12 @@ class functions:
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False):
+    def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20):
         data = self.data
         wells = np.array(data.STATION_ID.values)
         wells = np.unique(wells)
         for well in wells:
-            self.plot_corr_by_well(well_name=well, analytes=analytes,remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir, log_transform=log_transform)
+            self.plot_corr_by_well(well_name=well, analytes=analytes,remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir, log_transform=log_transform, fontsize=fontsize)
         
     # Description: 
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
@@ -814,7 +826,7 @@ class functions:
     #    lag (int): number of days to look ahead and behind the specified date (+/-)
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to    
-    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False):
+    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False, fontsize=20, returnData=False):
         if(lag==0):
             data = self.data
             data = self.simplify_data(data=data)
@@ -862,8 +874,8 @@ class functions:
         # piv = pivScaled
 
         if(log_transform):
-            piv[piv <= 0] = 0.01
-            piv = np.log2(piv)
+            piv[piv <= 0] = 0.00000001
+            piv = np.log10(piv)
 
         sns.set_style("white", {"axes.facecolor": "0.95"})
         g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -872,8 +884,11 @@ class functions:
                                                         scatter_kws={'color': 'black', 's': 20})
         g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
         g.map_upper(self.__plotUpperHalf)
-        for ax in g.axes.flat: 
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        for ax in g.axes.flat:
+                ax.tick_params("y", labelrotation=0, labelsize=fontsize)
+                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, fontsize=fontsize)
+                ax.set_xlabel(ax.get_xlabel(), fontsize=fontsize, fontweight='bold') #HERE
+                ax.set_ylabel(ax.get_ylabel(), fontsize=fontsize,fontweight='bold')
         g.fig.subplots_adjust(wspace=0.3, hspace=0.3)
         ax = plt.gca()
 
@@ -885,6 +900,8 @@ class functions:
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         g.fig.savefig(save_dir + '/' + date + '.png', bbox_inches="tight")
+        if(returnData):
+            return piv
 
     
     # Description: 
@@ -896,7 +913,7 @@ class functions:
     #    z_threshold (float): z_score threshold to eliminate outliers
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False):
+    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False, fontsize=20, returnData=False):
         data = self.data
         query = data
         query = self.simplify_data(data=query)
@@ -929,8 +946,8 @@ class functions:
             # piv = pivScaled
 
             if(log_transform):
-                piv[piv <= 0] = 0.01
-                piv = np.log2(piv)
+                piv[piv <= 0] = 0.00000001
+                piv = np.log10(piv)
 
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -939,8 +956,11 @@ class functions:
                                                             scatter_kws={'color': 'black', 's': 20})
             g.map_diag(sns.distplot, kde_kws={'color': 'black', 'lw': 3}, hist_kws={'histtype': 'bar', 'lw': 2, 'edgecolor': 'k', 'facecolor':'grey'})
             g.map_upper(self.__plotUpperHalf)
-            for ax in g.axes.flat: 
-                ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            for ax in g.axes.flat:
+                ax.tick_params("y", labelrotation=0, labelsize=fontsize)
+                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, fontsize=fontsize)
+                ax.set_xlabel(ax.get_xlabel(), fontsize=fontsize, fontweight='bold') #HERE
+                ax.set_ylabel(ax.get_ylabel(), fontsize=fontsize,fontweight='bold')
             g.fig.subplots_adjust(wspace=0.3, hspace=0.3)
             ax = plt.gca()
 
@@ -952,6 +972,8 @@ class functions:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             g.fig.savefig(save_dir + '/' + str(year) + '.png', bbox_inches="tight")
+            if(returnData):
+                return piv
             
     # Description: 
     #    Plots the linear regression line of data given the analyte_name and well_name. The plot includes the prediction where the line of best fit intersects with the Maximum Concentration Limit (MCL).
@@ -1801,7 +1823,7 @@ class functions:
 
     def plot_all_time_series(self, analyte_name=None, title='Dataset: Time ranges', x_label='Well', y_label='Year', x_label_size=8, marker_size=30,
                             min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', sort_by_distance=True, basin_coordinate=[436642.70,3681927.09], log_transform=False, cmap=mpl.cm.rainbow, 
-                            drop_cols=[], return_data=False, filter=False, col=None, equals=[], cbar_min=None, cbar_max=None, reverse_y_axis=False, fontsize = 20, figsize=(20,6), dpi=300):
+                            drop_cols=[], return_data=False, filter=False, col=None, equals=[], cbar_min=None, cbar_max=None, reverse_y_axis=False, fontsize = 20, figsize=(20,6), dpi=300, y_2nd_label=None):
         dt = self.getCleanData([analyte_name])
         dt = dt[analyte_name] 
         if(filter):
@@ -1873,6 +1895,8 @@ class functions:
             label_cb = "Log " + label_cb
         cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
                 cax=ax[1], orientation='vertical')
+        if(y_2nd_label!=None):
+            label_cb = y_2nd_label
         cbar.set_label(label=label_cb,size=fontsize)
 
         ax[0].tick_params(axis='y', labelsize=fontsize)
