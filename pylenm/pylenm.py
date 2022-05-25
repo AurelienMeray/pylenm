@@ -724,7 +724,7 @@ class functions:
     #    interpolate (bool): choose whether or to interpolate the data
     #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20, returnData=False, remove=[]):
+    def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20, returnData=False, remove=[], no_log=None):
         data = self.data
         query = data[data.STATION_ID == well_name]
         a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
@@ -762,7 +762,11 @@ class functions:
             
             if(log_transform):
                 piv[piv <= 0] = 0.00000001
+                temp = piv.copy()
                 piv = np.log10(piv)
+                if(no_log !=None):
+                    for col in no_log:
+                        piv[col] = temp[col]
 
             # Remove outliers
             if(remove_outliers):
@@ -826,7 +830,7 @@ class functions:
     #    lag (int): number of days to look ahead and behind the specified date (+/-)
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to    
-    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False, fontsize=20, returnData=False):
+    def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False, fontsize=20, returnData=False, no_log=None):
         if(lag==0):
             data = self.data
             data = self.simplify_data(data=data)
@@ -875,7 +879,11 @@ class functions:
 
         if(log_transform):
             piv[piv <= 0] = 0.00000001
+            temp = piv.copy()
             piv = np.log10(piv)
+            if(no_log !=None):
+                for col in no_log:
+                    piv[col] = temp[col]
 
         sns.set_style("white", {"axes.facecolor": "0.95"})
         g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
@@ -913,7 +921,7 @@ class functions:
     #    z_threshold (float): z_score threshold to eliminate outliers
     #    min_samples (int): minimum number of samples the result should contain in order to execute.
     #    save_dir (string): name of the directory you want to save the plot to
-    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False, fontsize=20, returnData=False):
+    def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False, fontsize=20, returnData=False, no_log=None):
         data = self.data
         query = data
         query = self.simplify_data(data=query)
@@ -947,7 +955,11 @@ class functions:
 
             if(log_transform):
                 piv[piv <= 0] = 0.00000001
+                temp = piv.copy()
                 piv = np.log10(piv)
+                if(no_log !=None):
+                    for col in no_log:
+                        piv[col] = temp[col]
 
             sns.set_style("white", {"axes.facecolor": "0.95"})
             g = sns.PairGrid(piv, aspect=1.2, diag_sharey=False, despine=False)
