@@ -55,4 +55,10 @@ setup(name='pylenm',
         "Operating System :: OS Independent",
         ],
       python_requires='>=3.6',
-      zip_safe=False)
+      zip_safe=False,
+      project_urls={
+        "Bug Tracker": "https://github.com/ALTEMIS-DOE/pylenm/issues",
+        "Documentation": "https://pylenm.readthedocs.io/",
+        "Source": "https://github.com/ALTEMIS-DOE/pylenm",
+      },
+      )

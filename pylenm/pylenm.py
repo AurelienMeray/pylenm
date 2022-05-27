@@ -38,8 +38,17 @@ class init:
         hasCols =  all(item in cols for item in find)
         return hasCols
 
-    # SETTING DATA    
-    def setData(self, data, verbose=True):
+    # SETTING DATA
+    def setData(self, data: pd.DataFrame, verbose: bool = True) -> None:
+        """Saves the data into Pylenm object
+
+        Attributes:
+            data (dataframe): Concentration data
+            verbose (bool): show additional information
+
+        Returns:
+            None
+        """
         validation = self.__isValid_Data(data)
         if(validation[0]):
             # Make all columns all caps
