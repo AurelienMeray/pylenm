@@ -6,7 +6,9 @@ Welcome to Pylenm's documentation!
    :caption: Contents:
    
    introduction
-   functions
+   usage
+   pylenm
+
 
 
 
