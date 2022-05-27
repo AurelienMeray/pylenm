@@ -1,4 +1,4 @@
-Pylenm
+Pylenm functions
 -----------------
 
 .. autoclass:: pylenm.init
