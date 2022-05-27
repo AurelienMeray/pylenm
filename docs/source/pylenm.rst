@@ -1,7 +1,7 @@
 Pylenm
 -----------------
 
-.. automodule:: pylenm.pylenm
+.. autoclass:: pylenm.pylenm
    :members:
    :undoc-members:
    :show-inheritance:
