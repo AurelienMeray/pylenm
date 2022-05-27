@@ -1,4 +1,3 @@
-__version__ = '0.1.13.12'
+__version__ = '0.1.13.13'
 
-from .pylenm import functions
-from . import pylenm_usages as usage
+from .pylenm import init

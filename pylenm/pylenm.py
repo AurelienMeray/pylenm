@@ -1,52 +1,12 @@
-# Required imports
-import os
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import pylab
-import scipy
-import random
-import datetime
-import re
-import time
-from math import sqrt
-import matplotlib.dates as mdates
-from matplotlib.dates import date2num, num2date
-get_ipython().run_line_magic('matplotlib', 'inline')
-from sklearn import preprocessing
-pd.set_option('display.max_columns', None) # to view all columns
-from scipy.optimize import curve_fit
-from supersmoother import SuperSmoother
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.pipeline import make_pipeline
-from sklearn.gaussian_process.kernels import Matern, WhiteKernel
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, RidgeCV, LassoCV
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import mean_squared_error
-import scipy.stats as stats
-import warnings
-warnings.filterwarnings("ignore")
-from pyproj import Proj, Transformer
-from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON, 
-                        LayersControl, Icon, Marker,FullScreenControl,
-                        CircleMarker, Popup, AwesomeIcon) 
-from ipywidgets import HTML
-plt.rcParams["font.family"] = "Times New Roman"
+from ._imports import *
 
-class functions:
+class init:
     
     def __init__(self, data):
         self.setData(data)
         self.__jointData = [None, 0]
 
-# DATA VALIDATION     
+    # DATA VALIDATION     
     def __isValid_Data(self, data):
         if(str(type(data)).lower().find('dataframe') == -1):
             return (False, 'Make sure the data is a pandas DataFrame.\n')
@@ -54,7 +14,7 @@ class functions:
             return (False, 'Make sure that ALL of the columns specified in the REQUIREMENTS are present.\n')
         else:
             return (True, None)
-    
+
     def __isValid_Construction_Data(self, data):
         if(str(type(data)).lower().find('dataframe') == -1):
             return (False, 'Make sure the data is a pandas DataFrame.\n')
@@ -62,8 +22,8 @@ class functions:
             return (False, 'Make sure that ALL of the columns specified in the REQUIREMENTS are present.\n')
         else:
             return (True, None)
-    
-# COLUMN VALIDATION 
+
+    # COLUMN VALIDATION 
     def __hasColumns_Data(self, data):
         find = ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']
         cols = list(data.columns)
@@ -78,7 +38,7 @@ class functions:
         hasCols =  all(item in cols for item in find)
         return hasCols
 
-# SETTING DATA    
+    # SETTING DATA    
     def setData(self, data, verbose=True):
         validation = self.__isValid_Data(data)
         if(validation[0]):
@@ -92,7 +52,7 @@ class functions:
         else:
             print('ERROR: {}'.format(validation[1]))
             return self.REQUIREMENTS_DATA()
-    
+
     def setConstructionData(self, construction_data, verbose=True):
         validation = self.__isValid_Construction_Data(construction_data)
         if(validation[0]):
@@ -105,7 +65,7 @@ class functions:
         else:
             print('ERROR: {}'.format(validation[1]))
             return self.REQUIREMENTS_CONSTRUCTION_DATA()
-    
+
     def jointData_is_set(self, lag):
         if(str(type(self.__jointData[0])).lower().find('dataframe') == -1):
             return False
@@ -118,15 +78,15 @@ class functions:
     def set_jointData(self, data, lag):
         self.__jointData[0] = data
         self.__jointData[1] = lag
-    
-# GETTING DATA      
+
+    # GETTING DATA      
     def getData(self):
         return self.data
-    
+
     def get_Construction_Data(self):
         return self.construction_data
 
-# MESSAGES FOR INVALID DATA          
+    # MESSAGES FOR INVALID DATA          
     def REQUIREMENTS_DATA(self):
         print('PYLENM DATA REQUIREMENTS:\nThe imported data needs to meet ALL of the following conditions to have a successful import:')
         print('   1) Data should be a pandas dataframe.')
@@ -136,13 +96,13 @@ class functions:
         print('PYLENM CONSTRUCTION REQUIREMENTS:\nThe imported construction data needs to meet ALL of the following conditions to have a successful import:')
         print('   1) Data should be a pandas dataframe.')
         print("   2) Data must have these column names: \n      ['station_id', 'aquifer', 'well_use', 'latitude', 'longitude', 'ground_elevation', 'total_depth']")
-    
+
     # Helper function for plot_correlation
     # Sorts analytes in a specific order: 'TRITIUM', 'URANIUM-238','IODINE-129','SPECIFIC CONDUCTANCE', 'PH', 'DEPTH_TO_WATER'
     def __custom_analyte_sort(self, analytes):
         my_order = 'TURISPDABCEFGHJKLMNOQVWXYZ-_abcdefghijklmnopqrstuvwxyz135790 2468'
         return sorted(analytes, key=lambda word: [my_order.index(c) for c in word])
-    
+
     def __plotUpperHalf(self, *args, **kwargs):
         corr_r = args[0].corr(args[1], 'pearson')
         corr_text = f"{corr_r:2.2f}"
@@ -150,11 +110,11 @@ class functions:
         ax.set_axis_off()
         marker_size = abs(corr_r) * 10000
         ax.scatter([.5], [.5], marker_size, [corr_r], alpha=0.6, cmap="coolwarm",
-                   vmin=-1, vmax=1, transform=ax.transAxes)
+                    vmin=-1, vmax=1, transform=ax.transAxes)
         font_size = abs(corr_r) * 40 + 5
         ax.annotate(corr_text, [.5, .48,],  xycoords="axes fraction", # [.5, .48,]
                     ha='center', va='center', fontsize=font_size, fontweight='bold')
-    
+
     # Description:
     #    Removes all columns except 'COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'.
     #    If the user specifies additional columns in addition to the ones listed above, those columns will be kept.
@@ -195,7 +155,7 @@ class functions:
         if(inplace):
             self.setData(data, verbose=False)
         return data
-    
+
     # Description:
     #    Returns the Maximum Concentration Limit value for the specified analyte.
     #    Example: 'TRITIUM' returns 1.3
@@ -203,10 +163,10 @@ class functions:
     #    analyte_name (string): name of the analyte to be processed
     def get_MCL(self, analyte_name):
         mcl_dictionary = {'TRITIUM': 1.3, 'URANIUM-238': 1.31,  'NITRATE-NITRITE AS NITROGEN': 1,
-                          'TECHNETIUM-99': 2.95, 'IODINE-129': 0, 'STRONTIUM-90': 0.9
-                         }
+                            'TECHNETIUM-99': 2.95, 'IODINE-129': 0, 'STRONTIUM-90': 0.9
+                            }
         return mcl_dictionary[analyte_name]
-    
+
     def __set_units(self):
         analytes = list(np.unique(self.data[['ANALYTE_NAME']]))
         mask1 = ~self.data[['ANALYTE_NAME','RESULT_UNITS']].duplicated()
@@ -216,7 +176,7 @@ class functions:
         unit_dictionary = pd.Series(res.RESULT_UNITS.values,index=res.ANALYTE_NAME).to_dict()
         self.unit_dictionary = unit_dictionary
         
-    
+
     # Description:
     #    Returns the unit of the analyte you specify.
     #    Example: 'DEPTH_TO_WATER' returns 'ft'
@@ -258,7 +218,7 @@ class functions:
             current_data = data[data[col]==value]
             final_data = pd.concat([final_data, current_data])
         return final_data
-    
+
     # Description:
     #    Returns a list of the well names filtered by the unit(s) specified.
     # Parameters:
@@ -302,7 +262,7 @@ class functions:
         row_loc = np.unique(np.where(z > z_threshold)[0])
         data = data.drop(data.index[row_loc])
         return data
-    
+
     # Description:
     #    Returns a csv file saved to save_dir with details pertaining to the specified analyte.
     #    Details include the well names, the date ranges and the number of unique samples.
@@ -334,8 +294,8 @@ class functions:
             endDate = current.COLLECTION_DATE.max().date()
             numSamples = current.duplicated().value_counts()[0]
             info.append({'Well Name': well, 'Start Date': startDate, 'End Date': endDate,
-                         'Date Range (days)': endDate-startDate ,
-                         'Unique samples': numSamples})
+                            'Date Range (days)': endDate-startDate ,
+                            'Unique samples': numSamples})
             details = pd.DataFrame(info)
             details.index = details['Well Name']
             details = details.drop('Well Name', axis=1)
@@ -346,7 +306,7 @@ class functions:
                 os.makedirs(save_dir)
             details.to_csv(save_dir + '/' + analyte_name + '_details.csv')
         return details
-    
+
     # Description:
     #    Returns a dataframe with a summary of the data for certain analytes.
     #    Summary includes the date ranges and the number of unique samples and other statistics for the analyte results.
@@ -385,8 +345,8 @@ class functions:
             stats_col = [x for x in stats.columns]
 
             result = {'Analyte Name': analyte_name, 'Start Date': startDate, 'End Date': endDate,
-                      'Date Range (days)':endDate-startDate, '# unique wells': wellCount,'# samples': numSamples,
-                      'Unit': self.get_unit(analyte_name) }
+                        'Date Range (days)':endDate-startDate, '# unique wells': wellCount,'# samples': numSamples,
+                        'Unit': self.get_unit(analyte_name) }
             for num in range(len(stats_col)):
                 result[stats_col[num]] = stats.iloc[0][num] 
 
@@ -403,7 +363,7 @@ class functions:
                 details = details.sort_values(by=['# unique wells'], ascending=ascending)
 
         return details
-    
+
     # Description: 
     #    Displays the analyte names available at given well locations.
     # Parameters:
@@ -434,7 +394,7 @@ class functions:
             print("{}{}{}".format(bb,str(well), be))
             analytes = sorted(list(data[data.STATION_ID==well].ANALYTE_NAME.unique()))
             print(str(analytes) +'\n')
-    
+
     # Description: 
     #    Filters data by passing the data and specifying the well_name and analyte_name
     # Parameters:
@@ -448,7 +408,7 @@ class functions:
             return 0
         else:
             return query
-    
+
     # Description: 
     #    Plot concentrations over time of a specified well and analyte with a smoothed curve on interpolated data points.
     # Parameters:
@@ -460,8 +420,8 @@ class functions:
     #    plot_inline (bool): choose whether or not to show plot inline
     #    save_dir (string): name of the directory you want to save the plot to
     def plot_data(self, well_name, analyte_name, log_transform=True, alpha=0,
-              plot_inline=True, year_interval=2, x_label='Years', y_label='', save_dir='plot_data', filter=False, col=None, equals=[]):
-    
+                plot_inline=True, year_interval=2, x_label='Years', y_label='', save_dir='plot_data', filter=False, col=None, equals=[]):
+
         # Gets appropriate data (well_name and analyte_name)
         query = self.query_data(well_name, analyte_name)
         query = self.simplify_data(data=query)
@@ -579,7 +539,7 @@ class functions:
                     result = 1
                 except:
                     pass
-    
+
     # Description: 
     #    Plot concentrations over time for every well and analyte with a smoothed curve on interpolated data points.
     # Parameters:
@@ -597,18 +557,18 @@ class functions:
         for well in wells:
             for analyte in analytes:
                 plot = self.plot_data(well, analyte, 
-                                 log_transform=log_transform, 
-                                 alpha=alpha, 
-                                 year_interval=year_interval,
-                                 plot_inline=plot_inline,
-                                 save_dir=save_dir)
+                                    log_transform=log_transform, 
+                                    alpha=alpha, 
+                                    year_interval=year_interval,
+                                    plot_inline=plot_inline,
+                                    save_dir=save_dir)
                 if 'ERROR:' in str(plot):
                     errors = errors + 1
                 else:
                     success = success + 1
         print("Success: ", success)
         print("Errors: ", errors)
-    
+
     # Description: 
     #    Plots a heatmap of the correlations of the important analytes over time for a specified well.
     # Parameters:
@@ -655,19 +615,19 @@ class functions:
             props = dict(boxstyle='round', facecolor='grey', alpha=0.15)
             ax.text(1.3, 1.05, 'Start date:  {}\nEnd date:    {}\n\nSamples:     {} of {}'.format(piv.index[0], piv.index[-1], samples, totalSamples), transform=ax.transAxes, fontsize=15, fontweight='bold', verticalalignment='bottom', bbox=props)
             ax = sns.heatmap(corr_matrix,
-                                   ax=ax,
-                                   mask=mask,
-                                   vmin=-1, vmax=1,
-                                   xticklabels=corr_matrix.columns,
-                                   yticklabels=corr_matrix.columns,
-                                   cmap=cmap,
-                                   annot=True,
-                                   linewidths=1,
-                                   cbar_kws={'orientation': 'vertical'})
+                                    ax=ax,
+                                    mask=mask,
+                                    vmin=-1, vmax=1,
+                                    xticklabels=corr_matrix.columns,
+                                    yticklabels=corr_matrix.columns,
+                                    cmap=cmap,
+                                    annot=True,
+                                    linewidths=1,
+                                    cbar_kws={'orientation': 'vertical'})
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             fig.savefig(save_dir + '/' + well_name + '_correlation.png', bbox_inches="tight")
-    
+
     # Description: 
     #    Plots a heatmap of the correlations of the important analytes over time for each well in the dataset.
     # Parameters:
@@ -680,11 +640,11 @@ class functions:
         wells = np.unique(wells)
         for well in wells:
             self.plot_correlation_heatmap(well_name=well,
-                                          show_symmetry=show_symmetry,
-                                          color=color,
-                                          save_dir=save_dir)
+                                            show_symmetry=show_symmetry,
+                                            color=color,
+                                            save_dir=save_dir)
 
-    
+
     # Description: 
     #    Resamples the data based on the frequency specified and interpolates the values of the analytes.
     # Parameters:
@@ -713,7 +673,7 @@ class functions:
             join = join.join(inter_series[analyte])
         join = join.dropna()
         return join
-    
+
     # Description: 
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
     # Parameters:
@@ -805,7 +765,7 @@ class functions:
             if(returnData):
                 return piv
             
-    
+
     # Description: 
     #    Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
     # Parameters:
@@ -911,7 +871,7 @@ class functions:
         if(returnData):
             return piv
 
-    
+
     # Description: 
     #    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells in specified year.
     # Parameters:
@@ -1119,7 +1079,7 @@ class functions:
             except:
                 print('ERROR: Something went wrong')
                 return None
-    
+
 
     # Description: 
     #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. The data is also clustered into n_clusters.
@@ -1285,8 +1245,8 @@ class functions:
             else:
                 gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                 return gps_color
-    
-    
+
+
     # Description: 
     #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. The data is also clustered into n_clusters.
     # Parameters:
@@ -1378,8 +1338,8 @@ class functions:
                 scatt_Y = ys * scaley
                 scatter = plt.scatter(scatt_X, scatt_Y, alpha=0.8, label='Wells', c=c)
                 centers = plt.scatter(centroids.iloc[:,0]* scalex, centroids.iloc[:,1]* scaley,
-                                      c = colors[0:n_clusters],
-                                      marker='X', s=550)
+                                        c = colors[0:n_clusters],
+                                        marker='X', s=550)
                 for i in range(n):
                     arrow = plt.arrow(0, 0, coeff[i,0], coeff[i,1], color = 'r', alpha = 0.9, head_width=0.05, head_length=0.05)
                     if labels is None:
@@ -1430,7 +1390,7 @@ class functions:
                 else:
                     gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                     return gps_color
-    
+
     # Description: 
     #    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a well_name in the dataset. Only uses the 6 important analytes.
     # Parameters:
@@ -1570,12 +1530,12 @@ class functions:
             marker = Marker(location=loc,
                             icon=icon,
                             draggable=False,
-                       )
+                        )
 
             m.add_layer(marker)
 
             popup = Popup(child=station,
-                          max_height=1)
+                            max_height=1)
 
             marker.popup = popup
 
@@ -1592,14 +1552,14 @@ class functions:
     def interpolate_wells_by_analyte(self, analyte, frequency='2W', rm_outliers=True, z_threshold=3):
         data = self.data
         df_t, dates = self.transform_time_series( 
-                                                 analytes=[analyte], 
-                                                 resample=frequency, 
-                                                 rm_outliers=True, 
-                                                 z_threshold=z_threshold)
+                                                    analytes=[analyte], 
+                                                    resample=frequency, 
+                                                    rm_outliers=True, 
+                                                    z_threshold=z_threshold)
         res_interp = self.get_individual_analyte_df(data=df_t, dates=dates, analyte=analyte)
         res_interp = res_interp.dropna(axis=1, how='all')
         return res_interp
-    
+
     # IN THE WORKS
     def transform_time_series(self, analytes=[], resample='2W', rm_outliers=False, z_threshold=4):
         data = self.data
@@ -1670,14 +1630,14 @@ class functions:
 
         dates = ana_data_resample[start_index:].index
         return vectorized_df, dates
-    
+
     def get_individual_analyte_df(self, data, dates, analyte):
         sample = data[analyte]
         sample_analyte = pd.DataFrame(sample, index=dates, columns=sample.index)
         for well in sample.index:
             sample_analyte[well] = sample[well]
         return sample_analyte
-    
+
     def cluster_data_OLD(self, data, n_clusters=4, log_transform=False, filter=False, filter_well_by=['D'], return_clusters=False):
         if(filter):
             res_wells = self.filter_wells(filter_well_by)
@@ -1771,7 +1731,7 @@ class functions:
         #     return color, temp
 
     def plot_all_time_series_simple(self, analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
-                             min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False, filter=False, col=None, equals=[]):
+                                min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False, filter=False, col=None, equals=[]):
         data = self.simplify_data()
         if(filter):
             filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
@@ -1922,7 +1882,7 @@ class functions:
         if(return_data):
             return dt
 
-    
+
     # Helper function to return start and end date for a date and a lag (+/- days)
     def __getLagDate(self, date, lagDays=7):
         date = pd.to_datetime(date)
@@ -1965,7 +1925,7 @@ class functions:
                 finalData.loc[date, i]['Date Ranges'] = dateRange
                 finalData.loc[date, i]['Number of wells'] = numWells
         return finalData
-    
+
     # Description: 
     #    Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is the date ranges secified by the lag.
     # Parameters:
@@ -2009,7 +1969,7 @@ class functions:
             finalData[col] = finalData[col].astype('float64')
         print("Completed")
         return finalData
-    
+
     # Error Metric: Mean Squared Error 
     def mse(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
@@ -2188,7 +2148,7 @@ class functions:
         print(selected)
         return selected, tot_err
 
-    
+
     def dist(self, p1, p2):
         return sqrt(((p1[0]-p2[0])**2)+((p1[1]-p2[1])**2))
 
