@@ -1,7 +1,7 @@
 Pylenm functions
 -----------------
 
-.. automodule:: pylenm..pylenm
+.. automodule:: pylenm
    :members:
    :undoc-members:
    :show-inheritance:

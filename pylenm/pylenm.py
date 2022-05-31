@@ -1,6 +1,21 @@
 from ._imports import *
 
 class init:
+    """
+    A class used to represent a pylenm
+
+    ...
+
+    Attributes
+    ----------
+    data : pd.DataFrame
+        A DataFrame to initialize pylenm
+
+    Methods
+    -------
+    says(sound=None)
+        Prints the animals name and what sound it makes
+    """
     
     def __init__(self, data):
         self.setData(data)
