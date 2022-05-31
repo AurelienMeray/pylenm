@@ -1,60 +1,30 @@
 from ._imports import *
 
 class init:
-    """Object that initializes Pylenm.
+    """The summary line for a class docstring should fit on one line.
+
+        If the class has public attributes, they may be documented here
+        in an ``Attributes`` section and follow the same formatting as a
+        function's ``Args`` section. Alternatively, attributes may be documented
+        inline with the attribute's declaration (see __init__ method below).
+
+        Properties created with the ``@property`` decorator should be documented
+        in the property's getter method.
+
+        Attributes:
+            attr1 (str): Description of `attr1`.
+            attr2 (:obj:`int`, optional): Description of `attr2`.
+
     """
     
     def __init__(self, data: pd.DataFrame):
-        """some details here
+        """Example of docstring on the __init__ method.
+
+        The __init__ method may be documented in either the class level
+        docstring, or as a docstring on the __init__ method itself.
 
         Args:
             data (pd.DataFrame): Data to be imported.
         """
         self.setData(data)
         self.__jointData = [None, 0]
-
-    # SETTING DATA
-    def setData(self, data: pd.DataFrame, verbose: bool = True) -> None:
-        """Saves the dataset into pylenm
-
-        Args:
-            data (pd.DataFrame): Dataset to be imported.
-            verbose (bool, optional): Prints success message. Defaults to True.
-
-        Returns:
-            None: ggg
-        """       
-        validation = self.__isValid_Data(data)
-        if(validation[0]):
-            # Make all columns all caps
-            cols_upper = [x.upper() for x in list(data.columns)]
-            data.columns = cols_upper
-            self.data = data
-            if(verbose):
-                print('Successfully imported the data!\n')
-            self.__set_units()
-        else:
-            print('ERROR: {}'.format(validation[1]))
-            return self.REQUIREMENTS_DATA()
-
-    def setConstructionData(self, construction_data: pd.DataFrame, verbose=True):
-        """Imports the addtitional well information as a separate DataFrame.
-
-        Args:
-            construction_data (pd.DataFrame): Data with additonal details.
-            verbose (bool, optional): Prints success message. Defaults to True.
-
-        Returns:
-            None: hhh
-        """
-        validation = self.__isValid_Construction_Data(construction_data)
-        if(validation[0]):
-            # Make all columns all caps
-            cols_upper = [x.upper() for x in list(construction_data.columns)]
-            construction_data.columns = cols_upper
-            self.construction_data = construction_data.set_index(['STATION_ID'])
-            if(verbose):
-                print('Successfully imported the construction data!\n')
-        else:
-            print('ERROR: {}'.format(validation[1]))
-            return self.REQUIREMENTS_CONSTRUCTION_DATA()
