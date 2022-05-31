@@ -8,8 +8,6 @@ Welcome to Pylenm's documentation!
    introduction
    usage
    pylenm
-   modules
-
 
 
 

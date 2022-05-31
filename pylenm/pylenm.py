@@ -1,162 +1,297 @@
-class SimpleBleDevice(object):
-    """This is a conceptual class representation of a simple BLE device
-    (GATT Server). It is essentially an extended combination of the
-    :class:`bluepy.btle.Peripheral` and :class:`bluepy.btle.ScanEntry` classes
+# -*- coding: utf-8 -*-
+"""Example Google style docstrings.
 
-    :param client: A handle to the :class:`simpleble.SimpleBleClient` client
-        object that detected the device
-    :type client: class:`simpleble.SimpleBleClient`
-    :param addr: Device MAC address, defaults to None
-    :type addr: str, optional
-    :param addrType: Device address type - one of ADDR_TYPE_PUBLIC or
-        ADDR_TYPE_RANDOM, defaults to ADDR_TYPE_PUBLIC
-    :type addrType: str, optional
-    :param iface: Bluetooth interface number (0 = /dev/hci0) used for the
-        connection, defaults to 0
-    :type iface: int, optional
-    :param data: A list of tuples (adtype, description, value) containing the
-        AD type code, human-readable description and value for all available
-        advertising data items, defaults to None
-    :type data: list, optional
-    :param rssi: Received Signal Strength Indication for the last received
-        broadcast from the device. This is an integer value measured in dB,
-        where 0 dB is the maximum (theoretical) signal strength, and more
-        negative numbers indicate a weaker signal, defaults to 0
-    :type rssi: int, optional
-    :param connectable: `True` if the device supports connections, and `False`
-        otherwise (typically used for advertising ‘beacons’).,
-        defaults to `False`
-    :type connectable: bool, optional
-    :param updateCount: Integer count of the number of advertising packets
-        received from the device so far, defaults to 0
-    :type updateCount: int, optional
+This module demonstrates documentation as specified by the `Google Python
+Style Guide`_. Docstrings may extend over multiple lines. Sections are created
+with a section header and a colon followed by a block of indented text.
+
+Example:
+    Examples can be given using either the ``Example`` or ``Examples``
+    sections. Sections support any reStructuredText formatting, including
+    literal blocks::
+
+        $ python example_google.py
+
+Section breaks are created by resuming unindented text. Section breaks
+are also implicitly created anytime a new section starts.
+
+Attributes:
+    module_level_variable1 (int): Module level variables may be documented in
+        either the ``Attributes`` section of the module docstring, or in an
+        inline docstring immediately following the variable.
+
+        Either form is acceptable, but the two should not be mixed. Choose
+        one convention to document module level variables and be consistent
+        with it.
+
+Todo:
+    * For module TODOs
+    * You have to also use ``sphinx.ext.todo`` extension
+
+.. _Google Python Style Guide:
+   http://google.github.io/styleguide/pyguide.html
+
+"""
+
+module_level_variable1 = 12345
+
+module_level_variable2 = 98765
+"""int: Module level variable documented inline.
+
+The docstring may span multiple lines. The type may optionally be specified
+on the first line, separated by a colon.
+"""
+
+
+def function_with_types_in_docstring(param1, param2):
+    """Example function with types documented in the docstring.
+
+    `PEP 484`_ type annotations are supported. If attribute, parameter, and
+    return types are annotated according to `PEP 484`_, they do not need to be
+    included in the docstring:
+
+    Args:
+        param1 (int): The first parameter.
+        param2 (str): The second parameter.
+
+    Returns:
+        bool: The return value. True for success, False otherwise.
+
+    .. _PEP 484:
+        https://www.python.org/dev/peps/pep-0484/
+
     """
 
-    def __init__(self, client, addr=None, addrType=None, iface=0,
-                 data=None, rssi=0, connectable=False, updateCount=0):
-        """Constructor method
+
+def function_with_pep484_type_annotations(param1: int, param2: str) -> bool:
+    """Example function with PEP 484 type annotations.
+
+    Args:
+        param1: The first parameter.
+        param2: The second parameter.
+
+    Returns:
+        The return value. True for success, False otherwise.
+
+    """
+
+
+def module_level_function(param1, param2=None, *args, **kwargs):
+    """This is an example of a module level function.
+
+    Function parameters should be documented in the ``Args`` section. The name
+    of each parameter is required. The type and description of each parameter
+    is optional, but should be included if not obvious.
+
+    If \*args or \*\*kwargs are accepted,
+    they should be listed as ``*args`` and ``**kwargs``.
+
+    The format for a parameter is::
+
+        name (type): description
+            The description may span multiple lines. Following
+            lines should be indented. The "(type)" is optional.
+
+            Multiple paragraphs are supported in parameter
+            descriptions.
+
+    Args:
+        param1 (int): The first parameter.
+        param2 (:obj:`str`, optional): The second parameter. Defaults to None.
+            Second line of description should be indented.
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        bool: True if successful, False otherwise.
+
+        The return type is optional and may be specified at the beginning of
+        the ``Returns`` section followed by a colon.
+
+        The ``Returns`` section may span multiple lines and paragraphs.
+        Following lines should be indented to match the first line.
+
+        The ``Returns`` section supports any reStructuredText formatting,
+        including literal blocks::
+
+            {
+                'param1': param1,
+                'param2': param2
+            }
+
+    Raises:
+        AttributeError: The ``Raises`` section is a list of all exceptions
+            that are relevant to the interface.
+        ValueError: If `param2` is equal to `param1`.
+
+    """
+    if param1 == param2:
+        raise ValueError('param1 may not be equal to param2')
+    return True
+
+
+def example_generator(n):
+    """Generators have a ``Yields`` section instead of a ``Returns`` section.
+
+    Args:
+        n (int): The upper limit of the range to generate, from 0 to `n` - 1.
+
+    Yields:
+        int: The next number in the range of 0 to `n` - 1.
+
+    Examples:
+        Examples should be written in doctest format, and should illustrate how
+        to use the function.
+
+        >>> print([i for i in example_generator(4)])
+        [0, 1, 2, 3]
+
+    """
+    for i in range(n):
+        yield i
+
+
+class ExampleError(Exception):
+    """Exceptions are documented in the same way as classes.
+
+    The __init__ method may be documented in either the class level
+    docstring, or as a docstring on the __init__ method itself.
+
+    Either form is acceptable, but the two should not be mixed. Choose one
+    convention to document the __init__ method and be consistent with it.
+
+    Note:
+        Do not include the `self` parameter in the ``Args`` section.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code):
+        self.msg = msg
+        self.code = code
+
+
+class ExampleClass(object):
+    """The summary line for a class docstring should fit on one line.
+
+    If the class has public attributes, they may be documented here
+    in an ``Attributes`` section and follow the same formatting as a
+    function's ``Args`` section. Alternatively, attributes may be documented
+    inline with the attribute's declaration (see __init__ method below).
+
+    Properties created with the ``@property`` decorator should be documented
+    in the property's getter method.
+
+    Attributes:
+        attr1 (str): Description of `attr1`.
+        attr2 (:obj:`int`, optional): Description of `attr2`.
+
+    """
+
+    def __init__(self, param1, param2, param3):
+        """Example of docstring on the __init__ method.
+
+        The __init__ method may be documented in either the class level
+        docstring, or as a docstring on the __init__ method itself.
+
+        Either form is acceptable, but the two should not be mixed. Choose one
+        convention to document the __init__ method and be consistent with it.
+
+        Note:
+            Do not include the `self` parameter in the ``Args`` section.
+
+        Args:
+            param1 (str): Description of `param1`.
+            param2 (:obj:`int`, optional): Description of `param2`. Multiple
+                lines are supported.
+            param3 (:obj:`list` of :obj:`str`): Description of `param3`.
+
         """
-        super().__init__(deviceAddr=None, addrType=addrType, iface=iface)
-        self.addr = addr
-        self.addrType = addrType
-        self.iface = iface
-        self.rssi = rssi
-        self.connectable = connectable
-        self.updateCount = updateCount
-        self.data = data
-        self._connected = False
-        self._services = []
-        self._characteristics = []
-        self._client = client
+        self.attr1 = param1
+        self.attr2 = param2
+        self.attr3 = param3  #: Doc comment *inline* with attribute
 
-    def getServices(self, uuids=None):
-        """Returns a list of :class:`bluepy.blte.Service` objects representing
-        the services offered by the device. This will perform Bluetooth service
-        discovery if this has not already been done; otherwise it will return a
-        cached list of services immediately..
+        #: list of str: Doc comment *before* attribute, with type specified
+        self.attr4 = ['attr4']
 
-        :param uuids: A list of string service UUIDs to be discovered,
-            defaults to None
-        :type uuids: list, optional
-        :return: A list of the discovered :class:`bluepy.blte.Service` objects,
-            which match the provided ``uuids``
-        :rtype: list On Python 3.x, this returns a dictionary view object,
-            not a list
+        self.attr5 = None
+        """str: Docstring *after* attribute, with type specified."""
+
+    @property
+    def readonly_property(self):
+        """str: Properties should be documented in their getter method."""
+        return 'readonly_property'
+
+    @property
+    def readwrite_property(self):
+        """:obj:`list` of :obj:`str`: Properties with both a getter and setter
+        should only be documented in their getter method.
+
+        If the setter method contains notable behavior, it should be
+        mentioned here.
         """
-        self._services = []
-        if(uuids is not None):
-            for uuid in uuids:
-                try:
-                    service = self.getServiceByUUID(uuid)
-                    self.services.append(service)
-                except BTLEException:
-                    pass
-        else:
-            self._services = super().getServices()
-        return self._services
+        return ['readwrite_property']
 
-    def setNotificationCallback(self, callback):
-        """Set the callback function to be executed when the device sends a
-        notification to the client.
+    @readwrite_property.setter
+    def readwrite_property(self, value):
+        value
 
-        :param callback: A function handle of the form
-            ``callback(client, characteristic, data)``, where ``client`` is a
-            handle to the :class:`simpleble.SimpleBleClient` that invoked the
-            callback, ``characteristic`` is the notified
-            :class:`bluepy.blte.Characteristic` object and data is a
-            `bytearray` containing the updated value. Defaults to None
-        :type callback: function, optional
+    def example_method(self, param1, param2):
+        """Class methods are similar to regular functions.
+
+        Note:
+            Do not include the `self` parameter in the ``Args`` section.
+
+        Args:
+            param1: The first parameter.
+            param2: The second parameter.
+
+        Returns:
+            True if successful, False otherwise.
+
         """
-        self.withDelegate(
-            SimpleBleNotificationDelegate(
-                callback,
-                client=self._client
-            )
-        )
-
-    def getCharacteristics(self, startHnd=1, endHnd=0xFFFF, uuids=None):
-        """Returns a list containing :class:`bluepy.btle.Characteristic`
-        objects for the peripheral. If no arguments are given, will return all
-        characteristics. If startHnd and/or endHnd are given, the list is
-        restricted to characteristics whose handles are within the given range.
-
-        :param startHnd: Start index, defaults to 1
-        :type startHnd: int, optional
-        :param endHnd: End index, defaults to 0xFFFF
-        :type endHnd: int, optional
-        :param uuids: a list of UUID strings, defaults to None
-        :type uuids: list, optional
-        :return: List of returned :class:`bluepy.btle.Characteristic` objects
-        :rtype: list
-        """
-        self._characteristics = []
-        if(uuids is not None):
-            for uuid in uuids:
-                try:
-                    characteristic = super().getCharacteristics(
-                        startHnd, endHnd, uuid)[0]
-                    self._characteristics.append(characteristic)
-                except BTLEException:
-                    pass
-        else:
-            self._characteristics = super().getCharacteristics(startHnd,
-                                                               endHnd)
-        return self._characteristics
-
-    def connect(self):
-        """Attempts to initiate a connection with the device.
-
-        :return: `True` if connection was successful, `False` otherwise
-        :rtype: bool
-        """
-        try:
-            super().connect(self.addr,
-                            addrType=self.addrType,
-                            iface=self.iface)
-        except BTLEException as ex:
-            self._connected = False
-            return (False, ex)
-        self._connected = True
         return True
 
-    def disconnect(self):
-        """Drops existing connection to device
-        """
-        super().disconnect()
-        self._connected = False
+    def __special__(self):
+        """By default special members with docstrings are not included.
 
-    def isConnected(self):
-        """Checks to see if device is connected
+        Special members are any methods or attributes that start with and
+        end with a double underscore. Any special member with a docstring
+        will be included in the output, if
+        ``napoleon_include_special_with_doc`` is set to True.
 
-        :return: `True` if connected, `False` otherwise
-        :rtype: bool
-        """
-        return self._connected
+        This behavior can be enabled by changing the following setting in
+        Sphinx's conf.py::
 
-    def printInfo(self):
-        """Print info about device
+            napoleon_include_special_with_doc = True
+
         """
-        print("Device %s (%s), RSSI=%d dB" %
-              (self.addr, self.addrType, self.rssi))
-        for (adtype, desc, value) in self.data:
-            print("  %s = %s" % (desc, value))
+        pass
+
+    def __special_without_docstring__(self):
+        pass
+
+    def _private(self):
+        """By default private members are not included.
+
+        Private members are any methods or attributes that start with an
+        underscore and are *not* special. By default they are not included
+        in the output.
+
+        This behavior can be changed such that private members *are* included
+        by changing the following setting in Sphinx's conf.py::
+
+            napoleon_include_private_with_doc = True
+
+        """
+        pass
+
+    def _private_without_docstring(self):
+        pass

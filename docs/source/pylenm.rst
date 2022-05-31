@@ -1,18 +1,7 @@
-pylenm package
+Pylenm package
 ==============
 
-Submodules
-----------
-
-pylenm.pylenm module
---------------------
-
-.. automodule:: pylenm.pylenm
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
+Pylenm contents
 ---------------
 
 .. automodule:: pylenm
