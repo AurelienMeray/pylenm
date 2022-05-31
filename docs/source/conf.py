@@ -34,7 +34,7 @@ release = open('../../VERSION.txt').read().strip()
 extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',        # to automatically build documentation from docstrings
-    'sphinx.ext.napoleon',       # to build from google style docstrings
+    # 'sphinx.ext.napoleon',       # to build from google style docstrings
 ]
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
