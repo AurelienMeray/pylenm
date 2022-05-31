@@ -42,7 +42,7 @@ class init:
     def setData(self, data: pd.DataFrame, verbose: bool = True) -> None:
         """Saves the data into Pylenm object
 
-        Attributes:
+        Args:
             data (dataframe): Concentration data
             verbose (bool): show additional information
 
