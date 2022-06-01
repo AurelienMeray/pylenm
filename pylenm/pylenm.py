@@ -1,4 +1,6 @@
-class ExampleClass(object):
+from ._imports import *
+
+class init(object):
     """The summary line for a class docstring should fit on one line.
 
     If the class has public attributes, they may be documented here
@@ -14,8 +16,8 @@ class ExampleClass(object):
         attr2 (:obj:`int`, optional): Description of `attr2`.
 
     """
-
-    def __init__(self, param1, param2, param3):
+    
+    def __init__(self, data: pd.DataFrame):
         """Example of docstring on the __init__ method.
 
         The __init__ method may be documented in either the class level
@@ -34,28 +36,6 @@ class ExampleClass(object):
             param3 (:obj:`list` of :obj:`str`): Description of `param3`.
 
         """
-        self.attr1 = param1
-        self.attr2 = param2
-        self.attr3 = param3  #: Doc comment *inline* with attribute
+        self.setData(data)
+        self.__jointData = [None, 0]
 
-        #: list of str: Doc comment *before* attribute, with type specified
-        self.attr4 = ['attr4']
-
-        self.attr5 = None
-        """str: Docstring *after* attribute, with type specified."""
-
-    def example_method(self, param1, param2):
-        """Class methods are similar to regular functions.
-
-        Note:
-            Do not include the `self` parameter in the ``Args`` section.
-
-        Args:
-            param1: The first parameter.
-            param2: The second parameter.
-
-        Returns:
-            True if successful, False otherwise.
-
-        """
-        return True
