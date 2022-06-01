@@ -13,7 +13,7 @@ import re
 import time
 from math import sqrt
 import matplotlib.dates as mdates
-# from matplotlib.dates import date2num, num2date
+from matplotlib.dates import date2num, num2date
 # from sklearn import preprocessing
 # from scipy.optimize import curve_fit
 # from supersmoother import SuperSmoother
@@ -38,7 +38,7 @@ import matplotlib.dates as mdates
 # from ipywidgets import HTML
 # # plt.rcParams["font.family"] = "Times New Roman"
 
-class init(object):
+class initialize_pylenm(object):
     """The summary line for a class docstring should fit on one line.
 
     If the class has public attributes, they may be documented here
