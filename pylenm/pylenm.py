@@ -1,3 +1,8 @@
+import os
+import pandas as pd
+import numpy as np
+import seaborn as sns
+
 class init(object):
     """The summary line for a class docstring should fit on one line.
 
