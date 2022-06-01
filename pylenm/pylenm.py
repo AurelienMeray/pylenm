@@ -15,7 +15,7 @@ from math import sqrt
 import matplotlib.dates as mdates
 from matplotlib.dates import date2num, num2date
 from sklearn import preprocessing
-pd.set_option('display.max_columns', None) # to view all columns
+# pd.set_option('display.max_columns', None) # to view all columns
 from scipy.optimize import curve_fit
 from supersmoother import SuperSmoother
 from sklearn.preprocessing import StandardScaler
@@ -52,11 +52,11 @@ class init(object):
 
     """
     
-    def __init__(self, data: pd.DataFrame):
-        """_summary_
+    # def __init__(self, data: pd.DataFrame):
+    #     """_summary_
 
-        Args:
-            data (pd.DataFrame): _description_
-        """
-        # self.setData(data)
-        # self.__jointData = [None, 0]
+    #     Args:
+    #         data (pd.DataFrame): _description_
+    #     """
+    #     # self.setData(data)
+    #     # self.__jointData = [None, 0]
