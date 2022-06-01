@@ -191,7 +191,3 @@ virtualenv==20.10.0
 wcwidth==0.2.5
 webargs==8.0.1
 webencodings==0.5.1
-wheel==0.36.2
-widgetsnbextension==3.5.1
-xlrd==2.0.1
-yarl==1.7.2
