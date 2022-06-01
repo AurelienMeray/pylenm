@@ -1,5 +1,3 @@
-from ._imports import *
-
 class init(object):
     """The summary line for a class docstring should fit on one line.
 
