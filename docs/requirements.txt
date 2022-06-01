@@ -195,5 +195,3 @@ wheel==0.36.2
 widgetsnbextension==3.5.1
 xlrd==2.0.1
 yarl==1.7.2
-zipp==3.4.1
-zope.interface==5.3.0
