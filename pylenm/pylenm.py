@@ -38,21 +38,12 @@ from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON,
 from ipywidgets import HTML
 # plt.rcParams["font.family"] = "Times New Roman"
 
-class initialize_pylenm(object):
-    """The summary line for a class docstring should fit on one line.
-
-    If the class has public attributes, they may be documented here
-    in an ``Attributes`` section and follow the same formatting as a
-    function's ``Args`` section. Alternatively, attributes may be documented
-    inline with the attribute's declaration (see __init__ method below).
-
-    Properties created with the ``@property`` decorator should be documented
-    in the property's getter method.
-
+class PylenmDataFactory(object):
+    """Class object that initilaizes Pylenm given data.
     """
     
 def __init__(self, data: pd.DataFrame):
-        """_summary_
+        """Initlizes pylenm with a Pandas DataFrame
 
         Args:
             data (pd.DataFrame): Data to be imported.
@@ -101,10 +92,8 @@ def setData(self, data: pd.DataFrame, verbose: bool = True) -> None:
         verbose (bool, optional): Prints success message. Defaults to True.
 
     Returns:
-        None: 
+        None
     """
-
-    
     validation = self.__isValid_Data(data)
     if(validation[0]):
         # Make all columns all caps
@@ -116,7 +105,7 @@ def setData(self, data: pd.DataFrame, verbose: bool = True) -> None:
         self.__set_units()
     else:
         print('ERROR: {}'.format(validation[1]))
-        return self.REQUIREMENTS_DATA()
+        return self.__REQUIREMENTS_DATA()
 
 def setConstructionData(self, construction_data: pd.DataFrame, verbose=True):
     """Imports the addtitional well information as a separate DataFrame.
@@ -126,7 +115,7 @@ def setConstructionData(self, construction_data: pd.DataFrame, verbose=True):
         verbose (bool, optional): Prints success message. Defaults to True.
 
     Returns:
-        None: 
+        None
     """
     validation = self.__isValid_Construction_Data(construction_data)
     if(validation[0]):
@@ -138,9 +127,17 @@ def setConstructionData(self, construction_data: pd.DataFrame, verbose=True):
             print('Successfully imported the construction data!\n')
     else:
         print('ERROR: {}'.format(validation[1]))
-        return self.REQUIREMENTS_CONSTRUCTION_DATA()
+        return self.__REQUIREMENTS_CONSTRUCTION_DATA()
 
 def jointData_is_set(self, lag):
+    """Checks to see if getJointData function was already called and saved for given lag.
+
+    Args:
+        lag (int): number of days to look ahead and behind the specified date (+/-)
+
+    Returns:
+        bool: True if JointData was already calculated, False, otherwise.
+    """
     if(str(type(self.__jointData[0])).lower().find('dataframe') == -1):
         return False
     else:
@@ -149,24 +146,34 @@ def jointData_is_set(self, lag):
         else:
             return False
 
-def set_jointData(self, data, lag):
+def __set_jointData(self, data, lag):
     self.__jointData[0] = data
     self.__jointData[1] = lag
 
 # GETTING DATA      
 def getData(self):
+    """Returns the concentration data in pylenm 
+
+    Returns:
+        pd.DataFrame: concentration data that was passed into pylenm
+    """
     return self.data
 
 def get_Construction_Data(self):
+    """Returns the construction data in pylenm 
+
+    Returns:
+        pd.DataFrame: construction data that was passed into pylenm
+    """
     return self.construction_data
 
 # MESSAGES FOR INVALID DATA          
-def REQUIREMENTS_DATA(self):
+def __REQUIREMENTS_DATA(self):
     print('PYLENM DATA REQUIREMENTS:\nThe imported data needs to meet ALL of the following conditions to have a successful import:')
     print('   1) Data should be a pandas dataframe.')
     print("   2) Data must have these column names: \n      ['COLLECTION_DATE','STATION_ID','ANALYTE_NAME','RESULT','RESULT_UNITS']")
 
-def REQUIREMENTS_CONSTRUCTION_DATA(self):
+def __REQUIREMENTS_CONSTRUCTION_DATA(self):
     print('PYLENM CONSTRUCTION REQUIREMENTS:\nThe imported construction data needs to meet ALL of the following conditions to have a successful import:')
     print('   1) Data should be a pandas dataframe.')
     print("   2) Data must have these column names: \n      ['station_id', 'aquifer', 'well_use', 'latitude', 'longitude', 'ground_elevation', 'total_depth']")
@@ -201,6 +208,21 @@ def __plotUpperHalf(self, *args, **kwargs):
 #    file_name (string): name of the csv file you want to save
 #    save_dir (string): name of the directory you want to save the csv file to
 def simplify_data(self, data=None, inplace=False, columns=None, save_csv=False, file_name= 'data_simplified', save_dir='data/'):
+    """Removes all columns except 'COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'.
+        If the user specifies additional columns in addition to the ones listed above, those columns will be kept.
+        The function returns a dataframe and has an optional parameter to be able to save the dataframe to a csv file.
+
+    Args:
+        data (pd.DataFrame, optional): data to simplify. Defaults to None.
+        inplace (bool, optional): save data to current working dataset. Defaults to False.
+        columns (list, optional): list of any additional columns on top of  ['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'] to be kept in the dataframe. Defaults to None.
+        save_csv (bool, optional): flag to determine whether or not to save the dataframe to a csv file. Defaults to False.
+        file_name (str, optional): name of the csv file you want to save. Defaults to 'data_simplified'.
+        save_dir (str, optional): name of the directory you want to save the csv file to. Defaults to 'data/'.
+
+    Returns:
+        pd.DataFrame
+    """
     if(str(type(data)).lower().find('dataframe') == -1):
         data = self.data
     else:
@@ -890,7 +912,7 @@ def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_di
         # Otherwise, calculate it
         else:
             data = self.getJointData(analytes, lag=lag)
-            self.set_jointData(data=data, lag=lag)
+            self.__set_jointData(data=data, lag=lag)
         # get new range based on the lag and create the pivor table to be able to do the correlation
         dateStart, dateEnd = self.__getLagDate(date, lagDays=lag)
         dateRange_key = str(dateStart.date()) + " - " + str(dateEnd.date())
@@ -1211,7 +1233,7 @@ def plot_PCA_by_date(self, date, analytes, lag=0, n_clusters=4, return_clusters=
         # Otherwise, calculate it
         else:
             data = self.getJointData(analytes, lag=lag)
-            self.set_jointData(data=data, lag=lag)
+            self.__set_jointData(data=data, lag=lag)
         # get new range based on the lag and create the pivor table to be able to do the correlation
         dateStart, dateEnd = self.__getLagDate(date, lagDays=lag)
         dateRange_key = str(dateStart.date()) + " - " + str(dateEnd.date())
@@ -2038,7 +2060,7 @@ def getJointData(self, analytes, lag=3):
         for ana_well in resultCollapse.columns:
             finalData.loc[dateRange, ana_well] =  resultCollapse.loc[dateRange, ana_well]
         # Save data to the pylenm global variable
-        self.set_jointData(data=finalData, lag=lag)
+        self.__set_jointData(data=finalData, lag=lag)
     for col in finalData.columns:
         finalData[col] = finalData[col].astype('float64')
     print("Completed")
