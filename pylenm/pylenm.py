@@ -379,7 +379,7 @@ def get_analyte_details(self, analyte_name, filter=False, col=None, equals=[], s
         save_dir (str, optional): name of the directory you want to save the csv file to. Defaults to 'analyte_details'.
 
     Returns:
-        pd.DataFrae: Table with well information
+        pd.DataFrame: Table with well information
     """
     data = self.data
     data = data[data.ANALYTE_NAME == analyte_name].reset_index().drop('index', axis=1)
@@ -786,15 +786,15 @@ def plot_all_correlation_heatmap(self, show_symmetry=True, color=True, save_dir=
                                         save_dir=save_dir)
 
 def interpolate_well_data(self, well_name, analytes, frequency='2W'):
-    """_summary_
+    """Resamples the data based on the frequency specified and interpolates the values of the analytes.
 
     Args:
         well_name (str): name of the well to be processed.
         analytes (list): list of analyte names to use
-        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. Note: See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
+        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
 
     Returns:
-        _type_: _description_
+        pd.DataFrame
     """
     data = self.data
     inter_series = {}
@@ -817,16 +817,6 @@ def interpolate_well_data(self, well_name, analytes, frequency='2W'):
     join = join.dropna()
     return join
 
-# Description: 
-#    Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    analytes (list of strings): list of analyte names to use
-#    remove_outliers (bool): choose whether or to remove the outliers.
-#    z_threshold (float): z_score threshold to eliminate outliers
-#    interpolate (bool): choose whether or to interpolate the data
-#    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20, returnData=False, remove=[], no_log=None):
     """Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
 
@@ -928,15 +918,6 @@ def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_thresho
             return piv
         
 
-# Description: 
-#    Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
-# Parameters:
-#    analytes (list of strings): list of analyte names to use
-#    remove_outliers (bool): choose whether or to remove the outliers.
-#    z_threshold (float): z_score threshold to eliminate outliers
-#    interpolate (bool): choose whether or to interpolate the data
-#    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20):
     """Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
 
@@ -956,14 +937,6 @@ def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, i
     for well in wells:
         self.plot_corr_by_well(well_name=well, analytes=analytes,remove_outliers=remove_outliers, z_threshold=z_threshold, interpolate=interpolate, frequency=frequency, save_dir=save_dir, log_transform=log_transform, fontsize=fontsize)
     
-# Description: 
-#    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
-# Parameters:
-#    date (string): date to be analyzed
-#    analytes (list of strings): list of analyte names to use
-#    lag (int): number of days to look ahead and behind the specified date (+/-)
-#    min_samples (int): minimum number of samples the result should contain in order to execute.
-#    save_dir (string): name of the directory you want to save the plot to    
 def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False, fontsize=20, returnData=False, no_log=None):
     """Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
 
@@ -1059,16 +1032,21 @@ def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_di
         return piv
 
 
-# Description: 
-#    Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells in specified year.
-# Parameters:
-#    year (int): year to be analyzed
-#    analytes (list of strings): list of analyte names to use
-#    remove_outliers (bool): choose whether or to remove the outliers.
-#    z_threshold (float): z_score threshold to eliminate outliers
-#    min_samples (int): minimum number of samples the result should contain in order to execute.
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4, min_samples=10, save_dir='plot_corr_by_year', log_transform=False, fontsize=20, returnData=False, no_log=None):
+    """Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells in specified year.
+
+    Args:
+        year (int): year to be analyzed
+        analytes (list): list of analyte names to use
+        remove_outliers (bool, optional): choose whether or to remove the outliers.. Defaults to True.
+        z_threshold (int, optional): z_score threshold to eliminate outliers. Defaults to 4.
+        min_samples (int, optional): minimum number of samples the result should contain in order to execute.. Defaults to 10.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_correlation'.
+        log_transform (bool, optional): flag for log base 10 transformation. Defaults to False.
+        fontsize (int, optional): font size. Defaults to 20.
+        returnData (bool, optional): flag to return data used to perfrom correlation analysis. Defaults to False.
+        no_log (list, optional): list of column names to not apply log transformation to. Defaults to None.
+    """
     data = self.data
     query = data
     query = self.simplify_data(data=query)
@@ -1134,14 +1112,15 @@ def plot_corr_by_year(self, year, analytes, remove_outliers=True, z_threshold=4,
         if(returnData):
             return piv
         
-# Description: 
-#    Plots the linear regression line of data given the analyte_name and well_name. The plot includes the prediction where the line of best fit intersects with the Maximum Concentration Limit (MCL).
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    analyte_name (string): name of the analyte to be processed
-#    year_interval (int): plot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...)
-#    save_dir (string): name of the directory you want to save the plot to     
 def plot_MCL(self, well_name, analyte_name, year_interval=5, save_dir='plot_MCL'):
+    """Plots the linear regression line of data given the analyte_name and well_name. The plot includes the prediction where the line of best fit intersects with the Maximum Concentration Limit (MCL).
+
+    Args:
+        well_name (str): ame of the well to be processed
+        analyte_name (str): name of the analyte to be processed
+        year_interval (int, optional): lot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...). Defaults to 5.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_MCL'.
+    """
     data = self.data
     # finds the intersection point of 2 lines given the slopes and y-intercepts
     def line_intersect(m1, b1, m2, b2):
@@ -1267,22 +1246,22 @@ def plot_MCL(self, well_name, analyte_name, year_interval=5, save_dir='plot_MCL'
             print('ERROR: Something went wrong')
             return None
 
-
-# Description: 
-#    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. The data is also clustered into n_clusters.
-# Parameters:
-#    date (string): date to be analyzed
-#    analytes (list of strings): list of analyte names to use
-#    lag (int): number of days to look ahead and behind the specified date (+/-)
-#    n_clusters (int): number of clusters to split the data into.
-#    filter (bool): Flag to indicate well filtering.
-#    col (string): column name from the construction dataset that you want to filter by
-#    equals (list of strings): value(s) to filter by in column col
-#    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
-#    min_samples (int): minimum number of samples the result should contain in order to execute.
-#    show_labels (bool): choose whether or not to show the name of the wells.
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_PCA_by_date(self, date, analytes, lag=0, n_clusters=4, return_clusters=False, min_samples=3, show_labels=True, save_dir='plot_PCA_by_date', filter=False, col=None, equals=[]):
+    """Gernates a PCA biplot (PCA score plot + loading plot) of the data given a date in the dataset. The data is also clustered into n_clusters.
+
+    Args:
+        date (str): date to be analyzed
+        analytes (str): list of analyte names to use
+        lag (int, optional): number of days to look ahead and behind the specified date (+/-). Defaults to 0.
+        n_clusters (int, optional): number of clusters to split the data into.. Defaults to 4.
+        return_clusters (bool, optional): Flag to return the cluster data to be used for spatial plotting.. Defaults to False.
+        min_samples (int, optional): minimum number of samples the result should contain in order to execute.. Defaults to 3.
+        show_labels (bool, optional): choose whether or not to show the name of the wells.. Defaults to True.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_PCA_by_date'.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+    """
     if(lag==0):
         data = self.data
         data = self.simplify_data(data=data)
@@ -1434,21 +1413,21 @@ def plot_PCA_by_date(self, date, analytes, lag=0, n_clusters=4, return_clusters=
             return gps_color
 
 
-# Description: 
-#    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. The data is also clustered into n_clusters.
-# Parameters:
-#    year (int): year to be analyzed
-#    analytes (list of strings): list of analyte names to use
-#    lag (int): number of days to look ahead and behind the specified date (+/-)
-#    n_clusters (int): number of clusters to split the data into.
-#    filter (bool): Flag to indicate well filtering.
-#    col (string): column name from the construction dataset that you want to filter by
-#    equals (list of strings): value(s) to filter by in column col
-#    return_clusters (bool): Flag to return the cluster data to be used for spatial plotting.
-#    min_samples (int): minimum number of samples the result should contain in order to execute.
-#    show_labels (bool): choose whether or not to show the name of the wells.
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_PCA_by_year(self, year, analytes, n_clusters=4, return_clusters=False, min_samples=10, show_labels=True, save_dir='plot_PCA_by_year', filter=False, col=None, equals=[]):
+    """Gernates a PCA biplot (PCA score plot + loading plot) of the data given a year in the dataset. The data is also clustered into n_clusters.
+
+    Args:
+        year (int): year to be analyzed
+        analytes (str): list of analyte names to use
+        n_clusters (int, optional): number of clusters to split the data into.. Defaults to 4.
+        return_clusters (bool, optional): Flag to return the cluster data to be used for spatial plotting.. Defaults to False.
+        min_samples (int, optional): minimum number of samples the result should contain in order to execute.. Defaults to 3.
+        show_labels (bool, optional): choose whether or not to show the name of the wells.. Defaults to True.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_PCA_by_date'.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+    """
     data = self.data
     query = self.simplify_data(data=data)
     query.COLLECTION_DATE = pd.to_datetime(query.COLLECTION_DATE)
@@ -1578,16 +1557,18 @@ def plot_PCA_by_year(self, year, analytes, n_clusters=4, return_clusters=False, 
                 gps_color = pd.merge(self.get_Construction_Data(), color_df, on=['STATION_ID'])
                 return gps_color
 
-# Description: 
-#    Gernates a PCA biplot (PCA score plot + loading plot) of the data given a well_name in the dataset. Only uses the 6 important analytes.
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    interpolate (bool): choose whether or to interpolate the data
-#    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
-#    min_samples (int): minimum number of samples the result should contain in order to execute.
-#    show_labels (bool): choose whether or not to show the name of the wells.
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_PCA_by_well(self, well_name, analytes, interpolate=False, frequency='2W', min_samples=10, show_labels=True, save_dir='plot_PCA_by_well'):
+    """Gernates a PCA biplot (PCA score plot + loading plot) of the data given a well_name in the dataset. Only uses the 6 important analytes.
+
+    Args:
+        well_name (str): name of the well to be processed
+        analytes (str): list of analyte names to use
+        interpolate (bool, optional): choose to interpolate the data. Defaults to False.
+        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
+        min_samples (int, optional): minimum number of samples the result should contain in order to execute.. Defaults to 3.
+        show_labels (bool, optional): choose whether or not to show the name of the wells.. Defaults to True.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_PCA_by_date'.
+    """
     data = self.data
     query = data[data.STATION_ID == well_name]
     a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
@@ -1682,13 +1663,17 @@ def plot_PCA_by_well(self, well_name, analytes, interpolate=False, frequency='2W
             os.makedirs(save_dir)
         fig.savefig(save_dir + '/' + title +'.png', bbox_inches="tight")
         
-# Description: 
-#    Plots the well locations on an interactive map given coordinates.
-# Parameters:
-#    gps_data (dataframe): Data frame with the following column names: station_id, latitude, longitude, color. If the color column is not passed, the default color will be blue.
-#    center (list with 2 floats): latitude and longitude coordinates to center the map view.
-#    zoom (int): value to determine the initial scale of the map
-def plot_coordinates_to_map(self, gps_data, center=[33.271459, -81.675873], zoom=14):
+def plot_coordinates_to_map(self, gps_data, center=[33.271459, -81.675873], zoom=14) -> Map:
+    """Plots the well locations on an interactive map given coordinates.
+
+    Args:
+        gps_data (pd.DataFrame): Data frame with the following column names: station_id, latitude, longitude, color. If the color column is not passed, the default color will be blue.
+        center (list, optional): latitude and longitude coordinates to center the map view. Defaults to [33.271459, -81.675873].
+        zoom (int, optional): value to determine the initial scale of the map. Defaults to 14.
+
+    Returns:
+        ipyleaflet.Map
+    """
     center = center
     zoom = 14
     m = Map(basemap=basemaps.Esri.WorldImagery, center=center, zoom=zoom)
@@ -1728,17 +1713,20 @@ def plot_coordinates_to_map(self, gps_data, center=[33.271459, -81.675873], zoom
 
     return m
 
-
-# Description: 
-#    Resamples analyte data based on the frequency specified and interpolates the values in between. NaN values are replaced with the average value per well.
-# Parameters:
-#    analyte (string): analyte name for interpolation of all present wells.
-#    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
-#    rm_outliers (bool): flag to remove outliers in the data
-#    z_threshold (int): z_score threshold to eliminate outliers
 def interpolate_wells_by_analyte(self, analyte, frequency='2W', rm_outliers=True, z_threshold=3):
+    """Resamples analyte data based on the frequency specified and interpolates the values in between. NaN values are replaced with the average value per well.
+
+    Args:
+        analyte (_type_): analyte name for interpolation of all present wells.
+        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
+        rm_outliers (bool, optional): flag to remove outliers in the data. Defaults to True.
+        z_threshold (int, optional): z_score threshold to eliminate outliers. Defaults to 3.
+
+    Returns:
+        _type_: _description_
+    """
     data = self.data
-    df_t, dates = self.transform_time_series( 
+    df_t, dates = self.__transform_time_series( 
                                                 analytes=[analyte], 
                                                 resample=frequency, 
                                                 rm_outliers=True, 
@@ -1748,7 +1736,7 @@ def interpolate_wells_by_analyte(self, analyte, frequency='2W', rm_outliers=True
     return res_interp
 
 # IN THE WORKS
-def transform_time_series(self, analytes=[], resample='2W', rm_outliers=False, z_threshold=4):
+def __transform_time_series(self, analytes=[], resample='2W', rm_outliers=False, z_threshold=4):
     data = self.data
     def transform_time_series_by_analyte(data, analyte_name):
         wells_analyte = np.unique(data[data.ANALYTE_NAME == analyte_name].STATION_ID)
