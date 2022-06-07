@@ -196,19 +196,10 @@ def __plotUpperHalf(self, *args, **kwargs):
     ax.annotate(corr_text, [.5, .48,],  xycoords="axes fraction", # [.5, .48,]
                 ha='center', va='center', fontsize=font_size, fontweight='bold')
 
-# Description:
-#    Removes all columns except 'COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'.
-#    If the user specifies additional columns in addition to the ones listed above, those columns will be kept.
-#    The function returns a dataframe and has an optional parameter to be able to save the dataframe to a csv file.
-# Parameters:
-#    data (dataframe): data to simplify
-#    inplace (bool): save data to current working dataset
-#    columns (list of strings): list of any additional columns on top of  ['COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'] to be kept in the dataframe.
-#    save_csv (bool): flag to determine whether or not to save the dataframe to a csv file.
-#    file_name (string): name of the csv file you want to save
-#    save_dir (string): name of the directory you want to save the csv file to
+
 def simplify_data(self, data=None, inplace=False, columns=None, save_csv=False, file_name= 'data_simplified', save_dir='data/'):
     """Removes all columns except 'COLLECTION_DATE', 'STATION_ID', 'ANALYTE_NAME', 'RESULT', and 'RESULT_UNITS'.
+        
         If the user specifies additional columns in addition to the ones listed above, those columns will be kept.
         The function returns a dataframe and has an optional parameter to be able to save the dataframe to a csv file.
 
@@ -252,12 +243,15 @@ def simplify_data(self, data=None, inplace=False, columns=None, save_csv=False, 
         self.setData(data, verbose=False)
     return data
 
-# Description:
-#    Returns the Maximum Concentration Limit value for the specified analyte.
-#    Example: 'TRITIUM' returns 1.3
-# Parameters:
-#    analyte_name (string): name of the analyte to be processed
 def get_MCL(self, analyte_name):
+    """Returns the Maximum Concentration Limit value for the specified analyte. Example: 'TRITIUM' returns 1.3
+
+    Args:
+        analyte_name (str): name of the analyte to be processed
+
+    Returns:
+        float: MLC value
+    """
     mcl_dictionary = {'TRITIUM': 1.3, 'URANIUM-238': 1.31,  'NITRATE-NITRITE AS NITROGEN': 1,
                         'TECHNETIUM-99': 2.95, 'IODINE-129': 0, 'STRONTIUM-90': 0.9
                         }
@@ -272,22 +266,28 @@ def __set_units(self):
     unit_dictionary = pd.Series(res.RESULT_UNITS.values,index=res.ANALYTE_NAME).to_dict()
     self.unit_dictionary = unit_dictionary
     
-
-# Description:
-#    Returns the unit of the analyte you specify.
-#    Example: 'DEPTH_TO_WATER' returns 'ft'
-# Parameters:
-#    analyte_name (string): name of the analyte to be processed
 def get_unit(self, analyte_name):
+    """Returns the unit of the analyte you specify. Example: 'DEPTH_TO_WATER' may return 'ft'
+
+    Args:
+        analyte_name (str): ame of the analyte to be processed
+
+    Returns:
+        str: unit of analyte
+    """
     return self.unit_dictionary[analyte_name]
 
-# Description: 
-#    Filters construction data based on one column. You only specify ONE column to filter by, but can selected MANY values for the entry.
-# Parameters:
-#    data (dataframe): dataframe to filter
-#    col (string): column to filter. Example: col='STATION_ID'
-#    equals (list of strings): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']
 def filter_by_column(self, data=None, col=None, equals=[]):
+    """Filters construction data based on one column. You only specify ONE column to filter by, but can selected MANY values for the entry.
+
+    Args:
+        data (pd.DataFrame, optional): dataframe to filter. Defaults to None.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+
+    Returns:
+        pd.DataFrame: returns filtered dataframe
+    """
     if(data is None):
         return 'ERROR: DataFrame was not provided to this function.'
     else:
@@ -315,11 +315,15 @@ def filter_by_column(self, data=None, col=None, equals=[]):
         final_data = pd.concat([final_data, current_data])
     return final_data
 
-# Description:
-#    Returns a list of the well names filtered by the unit(s) specified.
-# Parameters:
-#    units (list of strings): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
 def filter_wells(self, units):
+    """Returns a list of the well names filtered by the unit(s) specified.
+
+    Args:
+        units (list): Letter of the well to be filtered (e.g. [‘A’] or [‘A’, ‘D’])
+
+    Returns:
+        list: well names filtered by the unit(s) specified
+    """
     data = self.data
     if(units==None):
         units= ['A', 'B', 'C', 'D']
@@ -348,24 +352,35 @@ def filter_wells(self, units):
     res = df.loc[df.unit.isin(units)]
     return list(res.STATION_ID)
 
-# Description:
-#    Removes outliers from a dataframe based on the z_scores and returns the new dataframe.
-# Parameters:
-#    data (dataframe): data for the outliers to removed from
-#    z_threshold (float): z_score threshold to eliminate.
 def remove_outliers(self, data, z_threshold=4):
+    """Removes outliers from a dataframe based on the z_scores and returns the new dataframe.
+
+    Args:
+        data (pd.DataFrame): data for the outliers to removed from
+        z_threshold (int, optional): z_score threshold to eliminate. Defaults to 4.
+
+    Returns:
+        pd.DataFrame: data with outliers removed
+    """
     z = np.abs(stats.zscore(data))
     row_loc = np.unique(np.where(z > z_threshold)[0])
     data = data.drop(data.index[row_loc])
     return data
 
-# Description:
-#    Returns a csv file saved to save_dir with details pertaining to the specified analyte.
-#    Details include the well names, the date ranges and the number of unique samples.
-# Parameters:
-#    analyte_name (string): name of the analyte to be processed
-#    save_dir (string): name of the directory you want to save the csv file to
 def get_analyte_details(self, analyte_name, filter=False, col=None, equals=[], save_to_file = False, save_dir='analyte_details'):
+    """Returns a csv file saved to save_dir with details pertaining to the specified analyte. Details include the well names, the date ranges and the number of unique samples.
+
+    Args:
+        analyte_name (str): name of the analyte to be processed
+        filter (bool, optional): whether to filter the data. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+        save_to_file (bool, optional): whether to save data to file. Defaults to False.
+        save_dir (str, optional): name of the directory you want to save the csv file to. Defaults to 'analyte_details'.
+
+    Returns:
+        pd.DataFrae: Table with well information
+    """
     data = self.data
     data = data[data.ANALYTE_NAME == analyte_name].reset_index().drop('index', axis=1)
     data = data[~data.RESULT.isna()]
@@ -403,14 +418,20 @@ def get_analyte_details(self, analyte_name, filter=False, col=None, equals=[], s
         details.to_csv(save_dir + '/' + analyte_name + '_details.csv')
     return details
 
-# Description:
-#    Returns a dataframe with a summary of the data for certain analytes.
-#    Summary includes the date ranges and the number of unique samples and other statistics for the analyte results.
-# Parameters:
-#    analytes (list of strings): list of analyte names to be processed. If left empty, a list of all the analytes in the data will be used.
-#    sort_by (string): {‘date’, ‘samples’, ‘wells’} sorts the data by either the dates by entering: ‘date’, the samples by entering: ‘samples’, or by unique well locations by entering ‘wells’.
-#    ascending (bool): flag to sort in ascending order.
 def get_data_summary(self, analytes=None, sort_by='date', ascending=False, filter=False, col=None, equals=[]):
+    """Returns a dataframe with a summary of the data for certain analytes. Summary includes the date ranges and the number of unique samples and other statistics for the analyte results.
+
+    Args:
+        analytes (list, optional): list of analyte names to be processed. If left empty, a list of all the analytes in the data will be used. Defaults to None.
+        sort_by (str, optional): {‘date’, ‘samples’, ‘wells’} sorts the data by either the dates by entering: ‘date’, the samples by entering: ‘samples’, or by unique well locations by entering ‘wells’. Defaults to 'date'.
+        ascending (bool, optional): flag to sort in ascending order.. Defaults to False.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+
+    Returns:
+        pd.DataFrame: Table with well information
+    """
     data = self.data
     if(analytes == None):
         analytes = data.ANALYTE_NAME.unique()
@@ -460,14 +481,18 @@ def get_data_summary(self, analytes=None, sort_by='date', ascending=False, filte
 
     return details
 
-# Description: 
-#    Displays the analyte names available at given well locations.
-# Parameters:
-#    well_name (string): name of the well. If left empty, all wells are returned.
-#    filter (bool): flag to indicate filtering
-#    col (string): column to filter results
-#    equals (list of strings): value to match column name. Multiple values are accepted.
 def get_well_analytes(self, well_name=None, filter=False, col=None, equals=[]):
+    """Displays the analyte names available at given well locations.
+
+    Args:
+        well_name (str, optional): name of the well. If left empty, all wells are returned.. Defaults to None.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+
+    Returns:
+        None
+    """
     data = self.data
     bb = "\033[1m"
     be = "\033[0m"
@@ -491,12 +516,17 @@ def get_well_analytes(self, well_name=None, filter=False, col=None, equals=[]):
         analytes = sorted(list(data[data.STATION_ID==well].ANALYTE_NAME.unique()))
         print(str(analytes) +'\n')
 
-# Description: 
-#    Filters data by passing the data and specifying the well_name and analyte_name
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    analyte_name (string): name of the analyte to be processed
+
 def query_data(self, well_name, analyte_name):
+    """Filters data by passing the data and specifying the well_name and analyte_name
+
+    Args:
+        well_name (str): name of the well to be processed
+        analyte_name (str): name of the analyte to be processed
+
+    Returns:
+        pd.DataFrame: filtered data based on query conditons
+    """
     data = self.data
     query = data[data.STATION_ID == well_name]
     query = query[query.ANALYTE_NAME == analyte_name]
@@ -505,18 +535,27 @@ def query_data(self, well_name, analyte_name):
     else:
         return query
 
-# Description: 
-#    Plot concentrations over time of a specified well and analyte with a smoothed curve on interpolated data points.
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    analyte_name (string): name of the analyte to be processed
-#    log_transform (bool): choose whether or not the data should be transformed to log base 10 values
-#    alpha (int): value between 0 and 10 for line smoothing
-#    year_interval (int): plot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...)
-#    plot_inline (bool): choose whether or not to show plot inline
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_data(self, well_name, analyte_name, log_transform=True, alpha=0,
             plot_inline=True, year_interval=2, x_label='Years', y_label='', save_dir='plot_data', filter=False, col=None, equals=[]):
+    """Plot concentrations over time of a specified well and analyte with a smoothed curve on interpolated data points.
+
+    Args:
+        well_name (str): name of the well to be processed
+        analyte_name (str): name of the analyte to be processed
+        log_transform (bool, optional): choose whether or not the data should be transformed to log base 10 values. Defaults to True.
+        alpha (int, optional): alue between 0 and 10 for line smoothing. Defaults to 0.
+        plot_inline (bool, optional): choose whether or not to show plot inline. Defaults to True.
+        year_interval (int, optional): plot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...). Defaults to 2.
+        x_label (str, optional): x axis label. Defaults to 'Years'.
+        y_label (str, optional): y axis label. Defaults to ''.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_data'.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+
+    Returns:
+        None
+    """
 
     # Gets appropriate data (well_name and analyte_name)
     query = self.query_data(well_name, analyte_name)
@@ -636,17 +675,18 @@ def plot_data(self, well_name, analyte_name, log_transform=True, alpha=0,
             except:
                 pass
 
-# Description: 
-#    Plot concentrations over time for every well and analyte with a smoothed curve on interpolated data points.
-# Parameters:
-#    log_transform (bool): choose whether or not the data should be transformed to log base 10 values
-#    alpha (int): value between 0 and 10 for line smoothing
-#    year_interval (int): plot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...)
-#    plot_inline (bool): choose whether or not to show plot inline
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_all_data(self, log_transform=True, alpha=0, year_interval=2, plot_inline=True, save_dir='plot_data'):
+    """Plot concentrations over time for every well and analyte with a smoothed curve on interpolated data points.
+
+    Args:
+        log_transform (bool, optional): choose whether or not the data should be transformed to log base 10 values. Defaults to True.
+        alpha (int, optional): alue between 0 and 10 for line smoothing. Defaults to 0.
+        plot_inline (bool, optional): choose whether or not to show plot inline. Defaults to True.
+        year_interval (int, optional): plot by how many years to appear in the axis e.g.(1 = every year, 5 = every 5 years, ...). Defaults to 2.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_data'.
+    """
     analytes = ['TRITIUM','URANIUM-238','IODINE-129','SPECIFIC CONDUCTANCE', 'PH', 'DEPTH_TO_WATER']
-    wells = np.array(data.STATION_ID.values)
+    wells = np.array(self.data.STATION_ID.values)
     wells = np.unique(wells)
     success = 0
     errors = 0
@@ -665,14 +705,18 @@ def plot_all_data(self, log_transform=True, alpha=0, year_interval=2, plot_inlin
     print("Success: ", success)
     print("Errors: ", errors)
 
-# Description: 
-#    Plots a heatmap of the correlations of the important analytes over time for a specified well.
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    show_symmetry (bool): choose whether or not the heatmap should show the same information twice over the diagonal
-#    color (bool): choose whether or not the plot should be in color or in greyscale
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_correlation_heatmap(self, well_name, show_symmetry=True, color=True, save_dir='plot_correlation_heatmap'):
+    """ Plots a heatmap of the correlations of the important analytes over time for a specified well.
+
+    Args:
+        well_name (str): name of the well to be processed
+        show_symmetry (bool, optional): choose whether or not the heatmap should show the same information twice over the diagonal. Defaults to True.
+        color (bool, optional): choose whether or not the plot should be in color or in greyscale. Defaults to True.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_correlation_heatmap'.
+
+    Returns:
+        None
+    """
     data = self.data
     query = data[data.STATION_ID == well_name]
     a = list(np.unique(query.ANALYTE_NAME.values))
@@ -724,13 +768,14 @@ def plot_correlation_heatmap(self, well_name, show_symmetry=True, color=True, sa
             os.makedirs(save_dir)
         fig.savefig(save_dir + '/' + well_name + '_correlation.png', bbox_inches="tight")
 
-# Description: 
-#    Plots a heatmap of the correlations of the important analytes over time for each well in the dataset.
-# Parameters:
-#    show_symmetry (bool): choose whether or not the heatmap should show the same information twice over the diagonal
-#    color (bool): choose whether or not the plot should be in color or in greyscale
-#    save_dir (string): name of the directory you want to save the plot to
 def plot_all_correlation_heatmap(self, show_symmetry=True, color=True, save_dir='plot_correlation_heatmap'):
+    """Plots a heatmap of the correlations of the important analytes over time for each well in the dataset.
+
+    Args:
+        show_symmetry (bool, optional): choose whether or not the heatmap should show the same information twice over the diagonal. Defaults to True.
+        color (bool, optional): choose whether or not the plot should be in color or in greyscale. Defaults to True.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_correlation_heatmap'.
+    """
     data = self.data
     wells = np.array(data.STATION_ID.values)
     wells = np.unique(wells)
@@ -740,15 +785,17 @@ def plot_all_correlation_heatmap(self, show_symmetry=True, color=True, save_dir=
                                         color=color,
                                         save_dir=save_dir)
 
-
-# Description: 
-#    Resamples the data based on the frequency specified and interpolates the values of the analytes.
-# Parameters:
-#    well_name (string): name of the well to be processed
-#    analytes (list of strings): list of analyte names to use
-#    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. 
-#        See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
 def interpolate_well_data(self, well_name, analytes, frequency='2W'):
+    """_summary_
+
+    Args:
+        well_name (str): name of the well to be processed.
+        analytes (list): list of analyte names to use
+        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. Note: See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
+
+    Returns:
+        _type_: _description_
+    """
     data = self.data
     inter_series = {}
     query = data[data.STATION_ID == well_name]
@@ -781,6 +828,25 @@ def interpolate_well_data(self, well_name, analytes, frequency='2W'):
 #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
 #    save_dir (string): name of the directory you want to save the plot to
 def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20, returnData=False, remove=[], no_log=None):
+    """Plots the correlations with the physical plots as well as the correlations of the important analytes over time for a specified well.
+
+    Args:
+        well_name (str): name of the well to be processed
+        analytes (list): list of analyte names to use
+        remove_outliers (bool, optional): choose whether or to remove the outliers. Defaults to True.
+        z_threshold (int, optional): z_score threshold to eliminate outliers. Defaults to 4.
+        interpolate (bool, optional): choose whether or to interpolate the data. Defaults to False.
+        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. Note: See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_correlation'.
+        log_transform (bool, optional): flag for log base 10 transformation. Defaults to False.
+        fontsize (int, optional): font size. Defaults to 20.
+        returnData (bool, optional): flag to return data used to perfrom correlation analysis. Defaults to False.
+        remove (list, optional): wells to remove. Defaults to [].
+        no_log (list, optional): list of column names to not apply log transformation to. Defaults to None.
+
+    Returns:
+        None
+    """
     data = self.data
     query = data[data.STATION_ID == well_name]
     a = list(np.unique(query.ANALYTE_NAME.values))# get all analytes from dataset
@@ -872,6 +938,18 @@ def plot_corr_by_well(self, well_name, analytes, remove_outliers=True, z_thresho
 #    frequency (string): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks)
 #    save_dir (string): name of the directory you want to save the plot to
 def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, interpolate=False, frequency='2W', save_dir='plot_correlation', log_transform=False, fontsize=20):
+    """Plots the correlations with the physical plots as well as the important analytes over time for each well in the dataset.
+
+    Args:
+        analytes (list): list of analyte names to use
+        remove_outliers (bool, optional): choose whether or to remove the outliers. Defaults to True.
+        z_threshold (int, optional): z_score threshold to eliminate outliers. Defaults to 4.
+        interpolate (bool, optional): choose whether or to interpolate the data. Defaults to False.
+        frequency (str, optional): {‘D’, ‘W’, ‘M’, ‘Y’} frequency to interpolate. Note: See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html for valid frequency inputs. (e.g. ‘W’ = every week, ‘D ’= every day, ‘2W’ = every 2 weeks). Defaults to '2W'.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_correlation'.
+        log_transform (bool, optional): flag for log base 10 transformation. Defaults to False.
+        fontsize (int, optional): font size. Defaults to 20.
+    """
     data = self.data
     wells = np.array(data.STATION_ID.values)
     wells = np.unique(wells)
@@ -887,6 +965,19 @@ def plot_all_corr_by_well(self, analytes, remove_outliers=True, z_threshold=4, i
 #    min_samples (int): minimum number of samples the result should contain in order to execute.
 #    save_dir (string): name of the directory you want to save the plot to    
 def plot_corr_by_date_range(self, date, analytes, lag=0, min_samples=10, save_dir='plot_corr_by_date', log_transform=False, fontsize=20, returnData=False, no_log=None):
+    """Plots the correlations with the physical plots as well as the correlations of the important analytes for ALL the wells on a specified date or range of dates if a lag greater than 0 is specifed.
+
+    Args:
+        date (str): date to be analyzed
+        analytes (_type_): list of analyte names to use
+        lag (int, optional): number of days to look ahead and behind the specified date (+/-). Defaults to 0.
+        min_samples (int, optional): minimum number of samples the result should contain in order to execute.. Defaults to 10.
+        save_dir (str, optional): name of the directory you want to save the plot to. Defaults to 'plot_corr_by_date'.
+        log_transform (bool, optional): flag for log base 10 transformation. Defaults to False.
+        fontsize (int, optional): font size. Defaults to 20.
+        returnData (bool, optional): flag to return data used to perfrom correlation analysis. Defaults to False.
+        no_log (list, optional): list of column names to not apply log transformation to. Defaults to None.
+    """
     if(lag==0):
         data = self.data
         data = self.simplify_data(data=data)
