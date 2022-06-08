@@ -1723,7 +1723,7 @@ def interpolate_wells_by_analyte(self, analyte, frequency='2W', rm_outliers=True
         z_threshold (int, optional): z_score threshold to eliminate outliers. Defaults to 3.
 
     Returns:
-        _type_: _description_
+        pd.DataFrame: interpolated data
     """
     data = self.data
     df_t, dates = self.__transform_time_series( 
@@ -1731,7 +1731,7 @@ def interpolate_wells_by_analyte(self, analyte, frequency='2W', rm_outliers=True
                                                 resample=frequency, 
                                                 rm_outliers=True, 
                                                 z_threshold=z_threshold)
-    res_interp = self.get_individual_analyte_df(data=df_t, dates=dates, analyte=analyte)
+    res_interp = self.__get_individual_analyte_df(data=df_t, dates=dates, analyte=analyte)
     res_interp = res_interp.dropna(axis=1, how='all')
     return res_interp
 
@@ -1806,14 +1806,14 @@ def __transform_time_series(self, analytes=[], resample='2W', rm_outliers=False,
     dates = ana_data_resample[start_index:].index
     return vectorized_df, dates
 
-def get_individual_analyte_df(self, data, dates, analyte):
+def __get_individual_analyte_df(self, data, dates, analyte):
     sample = data[analyte]
     sample_analyte = pd.DataFrame(sample, index=dates, columns=sample.index)
     for well in sample.index:
         sample_analyte[well] = sample[well]
     return sample_analyte
 
-def cluster_data_OLD(self, data, n_clusters=4, log_transform=False, filter=False, filter_well_by=['D'], return_clusters=False):
+def __cluster_data_OLD(self, data, n_clusters=4, log_transform=False, filter=False, filter_well_by=['D'], return_clusters=False):
     if(filter):
         res_wells = self.filter_wells(filter_well_by)
         data = data.T
@@ -1850,6 +1850,19 @@ def cluster_data_OLD(self, data, n_clusters=4, log_transform=False, filter=False
             return gps_color
 
 def cluster_data(self, data, analyte_name=["ANALYTE_NAME"], n_clusters=4, filter=False, col=None, equals=[], year_interval=5, y_label = 'Concentration', return_clusters=False ):
+    """Clusters time series concentration data using kmeans algorithm and plots it.
+
+    Args:
+        data (pd.DataFrame): data to be used in clustering.
+        analyte_name (list, optional): analytes to use to cluster. Defaults to ["ANALYTE_NAME"].
+        n_clusters (int, optional): number of clusters for kmeans. Defaults to 4.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+        year_interval (int, optional): plot x_label interval in years. Defaults to 5.
+        y_label (str, optional): y axis label. Defaults to 'Concentration'.
+        return_clusters (bool, optional): flag to return cluster assignemnt. Defaults to False.
+    """
     data = data.copy()
     if(filter):
         filter_res = self.filter_by_column(data=self.get_Construction_Data(), col=col, equals=equals)
@@ -1907,6 +1920,25 @@ def cluster_data(self, data, analyte_name=["ANALYTE_NAME"], n_clusters=4, filter
 
 def plot_all_time_series_simple(self, analyte_name=None, start_date=None, end_date=None, title='Dataset: Time ranges', x_label='Well', y_label='Year',
                             min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', return_data=False, filter=False, col=None, equals=[]):
+    """Plots the start and end date of analyte readings for differnt locations/sensors/wells.
+
+    Args:
+        analyte_name (str, optional): analyte to examine. Defaults to None.
+        start_date (str, optional): start date of horizontal time to show alignment. Defaults to None.
+        end_date (str, optional): end date of horizontal time to show alignment.. Defaults to None.
+        title (str, optional): plot title. Defaults to 'Dataset: Time ranges'.
+        x_label (str, optional): x axis label. Defaults to 'Well'.
+        y_label (str, optional): y axis label. Defaults to 'Year'.
+        min_days (int, optional): minimum number of days required to plot the time series . Defaults to 10.
+        x_min_lim (int, optional): x axis starting point. Defaults to -5.
+        x_max_lim (int, optional): x axis ending point. Defaults to 170.
+        y_min_date (str, optional): y axis starting date. Defaults to '1988-01-01'.
+        y_max_date (str, optional): y axis ending date. Defaults to '2020-01-01'.
+        return_data (bool, optional): flag to return data. Defaults to False.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+    """
     data = self.simplify_data()
     if(filter):
         filter_res = self.filter_by_column(data=self.construction_data, col=col, equals=equals)
@@ -1971,6 +2003,37 @@ def plot_all_time_series_simple(self, analyte_name=None, start_date=None, end_da
 def plot_all_time_series(self, analyte_name=None, title='Dataset: Time ranges', x_label='Well', y_label='Year', x_label_size=8, marker_size=30,
                         min_days=10, x_min_lim=-5, x_max_lim = 170, y_min_date='1988-01-01', y_max_date='2020-01-01', sort_by_distance=True, basin_coordinate=[436642.70,3681927.09], log_transform=False, cmap=mpl.cm.rainbow, 
                         drop_cols=[], return_data=False, filter=False, col=None, equals=[], cbar_min=None, cbar_max=None, reverse_y_axis=False, fontsize = 20, figsize=(20,6), dpi=300, y_2nd_label=None):
+    """Plots the start and end date of analyte readings for differnt locations/sensors/wells with colored concentration reading.
+
+    Args:
+        analyte_name (str, optional): analyte to examine. Defaults to None.
+        title (str, optional): plot title. Defaults to 'Dataset: Time ranges'.
+        x_label (str, optional): x axis label. Defaults to 'Well'.
+        y_label (str, optional): y axis label. Defaults to 'Year'.
+        x_label_size (int, optional): x axis label font size. Defaults to 8.
+        marker_size (int, optional): point size for time series. Defaults to 30.
+        min_days (int, optional): minimum number of days required to plot the time series . Defaults to 10.
+        x_min_lim (int, optional): x axis starting point. Defaults to -5.
+        x_max_lim (int, optional): x axis ending point. Defaults to 170.
+        y_min_date (str, optional): y axis starting date. Defaults to '1988-01-01'.
+        y_max_date (str, optional): y axis ending date. Defaults to '2020-01-01'.
+        sort_by_distance (bool, optional): flag to sort by distance from basin center. Defaults to True.
+        basin_coordinate (list, optional): Easting, Nothing coordinate of basin center. Defaults to [436642.70,3681927.09].
+        log_transform (bool, optional): flag to toggle log base 10 transformation. Defaults to False.
+        cmap (cmap, optional): color map for plotting. Defaults to mpl.cm.rainbow.
+        drop_cols (list, optional): columns, usually wells, to exclude. Defaults to [].
+        return_data (bool, optional): flag to return data. Defaults to False.
+        filter (bool, optional): flag to indicate filtering. Defaults to False.
+        col (str, optional): column to filter. Example: col='STATION_ID'. Defaults to None.
+        equals (list, optional): values to filter col by. Examples: equals=['FAI001A', 'FAI001B']. Defaults to [].
+        cbar_min (float, optional): color bar lower boundary. Defaults to None.
+        cbar_max (float, optional): color bar upper boundary. Defaults to None.
+        reverse_y_axis (bool, optional): flag that reverses y axis. Defaults to False.
+        fontsize (int, optional): plot font size. Defaults to 20.
+        figsize (tuple, optional): matplotlib style figure size. Defaults to (20,6).
+        dpi (int, optional): DPI of figure. Defaults to 300.
+        y_2nd_label (str, optional): color bar label manual override. Defaults to None.
+    """
     dt = self.getCleanData([analyte_name])
     dt = dt[analyte_name] 
     if(filter):
@@ -2065,11 +2128,16 @@ def __getLagDate(self, date, lagDays=7):
     dateEnd = date + pd.DateOffset(days=lagDays)
     return dateStart, dateEnd
 
-# Description: 
-#    Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is all of the dates in the dataset. Many NaN should be expected.
-# Parameters:
-#    analytes (list of strings): list of analyte names to use
+
 def getCleanData(self, analytes):
+    """Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is all of the dates in the dataset. Many NaN should be expected.
+
+    Args:
+        analytes (list): list of analyte names to use
+
+    Returns:
+        pd.DataFrame
+    """
     curr = self.data[['STATION_ID', 'COLLECTION_DATE', 'ANALYTE_NAME', 'RESULT']]
     main = pd.DataFrame()
     for ana in analytes:
@@ -2079,12 +2147,16 @@ def getCleanData(self, analytes):
     piv.sort_index(inplace=True)
     return piv
 
-# Description: 
-#    Creates a table which counts the number of wells within a range specified by a list of lag days.
-# Parameters:
-#    analytes (list of strings): list of analyte names to use
-#    lag (list of ints): list of days to look ahead and behind the specified date (+/-)
 def getCommonDates(self, analytes, lag=[3,7,10]):
+    """Creates a table which counts the number of wells within a range specified by a list of lag days.
+
+    Args:
+        analytes (list): list of analyte names to use
+        lag (list, optional): list of days to look ahead and behind the specified date (+/-). Defaults to [3,7,10].
+
+    Returns:
+        pd.DataFrame
+    """
     piv = self.getCleanData(analytes)
     dates = piv.index
     names=['Dates', 'Lag']
@@ -2101,12 +2173,16 @@ def getCommonDates(self, analytes, lag=[3,7,10]):
             finalData.loc[date, i]['Number of wells'] = numWells
     return finalData
 
-# Description: 
-#    Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is the date ranges secified by the lag.
-# Parameters:
-#    analytes (list of strings): list of analyte names to use
-#    lag (int): number of days to look ahead and behind the specified date (+/-)
 def getJointData(self, analytes, lag=3):
+    """Creates a table filling the data from the concentration dataset for a given analyte list where the columns are multi-indexed as follows [analytes, well names] and the index is the date ranges secified by the lag.
+
+    Args:
+        analytes (list): list of analyte names to use
+        lag (int, optional): number of days to look ahead and behind the specified date (+/-). Defaults to 3.
+
+    Returns:
+        pd.DataFrame
+    """
     if(self.jointData_is_set(lag=lag)==True):
         finalData = self.__jointData[0]
         return finalData
@@ -2145,17 +2221,30 @@ def getJointData(self, analytes, lag=3):
     print("Completed")
     return finalData
 
-# Error Metric: Mean Squared Error 
 def mse(self, y_true, y_pred):
+    """Error Metric: Mean Squared Error 
+
+    Args:
+        y_true (numpy.array): true values
+        y_pred (numpy.array): predicted values
+
+    Returns:
+        float: mean squared error
+    """
     return mean_squared_error(y_true, y_pred)
 
-# Description: 
-#    Returns the best Gaussian Process model for a given X and y.
-# Parameters:
-#    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
-#    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
-#    smooth (bool): flag to toggle WhiteKernel on and off
 def get_Best_GP(self, X, y, smooth=True, seed = 42):
+    """Returns the best Gaussian Process model for a given X and y.
+
+    Args:
+        X (numpy.array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+        y (numpy.array): array of size (number of wells) where each value corresponds to a concentration value at a well.
+        smooth (bool, optional): flag to toggle WhiteKernel on and off. Defaults to True.
+        seed (int, optional): random state setting. Defaults to 42.
+
+    Returns:
+        GaussianProcessRegressor: best GP model
+    """
     gp = GaussianProcessRegressor(normalize_y=True, random_state=seed)
     # Kernel models
     if(smooth):
@@ -2189,15 +2278,19 @@ def get_Best_GP(self, X, y, smooth=True, seed = 42):
     model.fit(X, y)
     return model
 
-# Description: 
-#    Fits Gaussian Process for X and y and returns both the GP model and the predicted values
-# Parameters:
-#    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
-#    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
-#    xx (array floats): prediction locations
-#    model (GP model): model to fit
-#    smooth (bool): flag to toggle WhiteKernel on and off
 def fit_gp(self, X, y, xx, model=None, smooth=True):
+    """Fits Gaussian Process for X and y and returns both the GP model and the predicted values
+
+    Args:
+        X (numpy.array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+        y (numpy.array): array of size (number of wells) where each value corresponds to a concentration value at a well.
+        xx (numpy.array): prediction locations
+        model (GaussianProcessRegressor, optional): model to fit. Defaults to None.
+        smooth (bool, optional): flag to toggle WhiteKernel on and off. Defaults to True.
+
+    Returns:
+        GaussianProcessRegressor, numpy.array: GP model, prediction of xx
+    """
     if(model==None):
         gp = self.get_Best_GP(X, y, smooth) # selects best kernel params to fit
     else:
@@ -2206,17 +2299,22 @@ def fit_gp(self, X, y, xx, model=None, smooth=True):
     y_pred = gp.predict(xx)
     return gp, y_pred
 
-# Description: 
-#    Interpolate the water table as a function of topographic metrics using Gaussian Process. Uses regression to generate trendline adds the values to the GP map.
-# Parameters:
-#    X (dataframe): training values. Must include "Easting" and "Northing" columns.
-#    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
-#    xx (array floats): prediction locations
-#    ft (list of stings): feature names to train on
-#    regression (string): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
-#    model (GP model): model to fit
-#    smooth (bool): flag to toggle WhiteKernel on and off
 def interpolate_topo(self, X, y, xx, ft=['Elevation'], model=None, smooth=True, regression='linear', seed = 42):
+    """Spatially interpolate the water table as a function of topographic metrics using Gaussian Process. Uses regression to generate trendline adds the values to the GP map.
+
+    Args:
+        X (numpy.array): training values. Must include "Easting" and "Northing" columns.
+        y (numpy.array): array of size (number of wells) where each value corresponds to a concentration value at a well.
+        xx (numpy.array): prediction locations
+        ft (list, optional): eature names to train on. Defaults to ['Elevation'].
+        model (GaussianProcessRegressor, optional): model to fit. Defaults to None.
+        smooth (bool, optional): flag to toggle WhiteKernel on and off. Defaults to True.
+        regression (str, optional): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.. Defaults to 'linear'.
+        seed (int, optional): random state setting. Defaults to 42.
+
+    Returns:
+        numpy.array: predicton of locations xx
+    """
     alpha_Values = [1e-5, 5e-5, 0.0001, 0.0005, 0.005, 0.05, 0.1, 0.3, 1, 3, 5, 10, 15, 30, 80]
     if(regression.lower()=='linear'):
         reg = LinearRegression()
@@ -2286,21 +2384,25 @@ def __get_Best_Well(self, X, y, xx, ref, selected, leftover, ft=['Elevation'], r
         print("Selected well: {} with a MSE error of {}\n".format(min_ix, min_val))
     return min_ix, min_val
 
-# Description: 
-#    Optimization function to select a subset of wells as to minimizes the MSE from a reference map
-# Parameters:
-#    X (array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
-#    y (array of floats): array of size (number of wells) where each value corresponds to a concentration value at a well.
-#    xx (array floats): prediction locations
-#    ref (array): reference values for xx locations
-#    max_wells (int):{} number of wells to optimize for
-#    ft (list of stings): feature names to train on
-#    regression (string): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.
-#    initial (list of ints): indices of wells as the starting wells for optimization
-#    verbose (bool): flag to toggle details of the well selection process
-#    model (GP model): model to fit
-#    smooth (bool): flag to toggle WhiteKernel on and off
 def get_Best_Wells(self, X, y, xx, ref, initial, max_wells, ft=['Elevation'], regression='linear', verbose=True, smooth=True, model=None):
+    """Greedy optimization function to select a subset of wells as to minimizes the MSE from a reference map
+
+    Args:
+        X (numpy.array): array of dimension (number of wells, 2) where each element is a pair of UTM coordinates.
+        y (numpy.array): array of size (number of wells) where each value corresponds to a concentration value at a well.
+        xx (numpy.array): prediction locations
+        ref (numpy.array): reference field to optimize for (aka best/true map)
+        initial (list): indices of wells as the starting wells for optimization
+        max_wells (int): number of wells to optimize for
+        ft (list, optional): feature names to train on. Defaults to ['Elevation'].
+        regression (str, optional): choice between 'linear' for linear regression, 'rf' for random forest regression, 'ridge' for ridge regression, or 'lasso' for lasso regression.. Defaults to 'linear'.
+        verbose (bool, optional): v. Defaults to True.
+        smooth (bool, optional): flag to toggle WhiteKernel on and off. Defaults to True.
+        model (GaussianProcessRegressor, optional): model to fit. Defaults to None.
+
+    Returns:
+        list: index of best wells in order from best to worst
+    """
     tot_err = []
     selected = initial
     leftover = list(range(0, X.shape[0])) # all indexes from 0 to number of well
