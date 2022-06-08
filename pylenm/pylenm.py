@@ -2427,9 +2427,28 @@ def get_Best_Wells(self, X, y, xx, ref, initial, max_wells, ft=['Elevation'], re
 
 
 def dist(self, p1, p2):
+    """2D Euclidean distance function
+
+    Args:
+        p1 (tuple): first point
+        p2 (tuple): second point
+
+    Returns:
+        float: Euclidean distance
+    """
     return sqrt(((p1[0]-p2[0])**2)+((p1[1]-p2[1])**2))
 
 def add_dist_to_basin(self, XX, basin_coordinate=[436642.70,3681927.09], col_name='dist_to_basin'):
+    """adds column to data with the distance of a record to the basin coordinate
+
+    Args:
+        XX (pd.DataFrame): data with coordinate information
+        basin_coordinate (list, optional): basin coordinate. Defaults to [436642.70,3681927.09].
+        col_name (str, optional): name to assign new column. Defaults to 'dist_to_basin'.
+
+    Returns:
+        pd.DataFrame: returns original data with additional column with the distance.
+    """
     x1,y1 = basin_coordinate
     distances = []
     for i in range(XX.shape[0]):
