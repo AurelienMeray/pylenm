@@ -6,29 +6,27 @@ Usage
 Installation
 ------------
 
-To use Lumache, first install it using pip:
+To use Pylenm, first install it using pip:
 
 .. code-block:: console
 
-   (.venv) $ pip install lumache
+   (.venv) $ pip install pylenm
 
-Creating recipes
+General import statement
 ----------------
 
-To retrieve a list of random ingredients,
-you can use the ``lumache.get_random_ingredients()`` function:
+At the moment, Pylenm only has one module: ``PylenmDataFactory``. 
 
-.. autofunction:: lumache.get_random_ingredients
+You can import it as follow:
 
-The ``kind`` parameter should be either ``"meat"``, ``"fish"``,
-or ``"veggies"``. Otherwise, :py:func:`lumache.get_random_ingredients`
-will raise an exception.
+>>> import pylenm
+>>> pylenm.__version__
+'0.1.13.13'
 
-.. autoexception:: lumache.InvalidKindError
+You can start using pylenm by passing your dataset into ``PylenmDataFactory``:
 
-For example:
+>>> data = pd.read_csv(PATH)
+>>> pylenm_df = pylenm.PylenmDataFactory(data)
+Successfully imported the data!
 
->>> import lumache
->>> lumache.get_random_ingredients()
-['shells', 'gorgonzola', 'parsley']
 

@@ -1974,7 +1974,7 @@ class PylenmDataFactory(object):
             return wells_dateRange
 
     def plot_all_time_series(self, analyte_name=None, title='Dataset: Time ranges', x_label='Well', y_label='Year', x_label_size=8, marker_size=30,
-                            min_days=10, x_min_lim=None, x_max_lim=None, y_min_date=None, y_max_date=None, sort_by_distance=True, basin_coordinate=[436642.70,3681927.09], log_transform=False, cmap=mpl.cm.rainbow, 
+                            min_days=10, x_min_lim=None, x_max_lim=None, y_min_date=None, y_max_date=None, sort_by_distance=True, source_coordinate=[436642.70,3681927.09], log_transform=False, cmap=mpl.cm.rainbow, 
                             drop_cols=[], return_data=False, filter=False, col=None, equals=[], cbar_min=None, cbar_max=None, reverse_y_axis=False, fontsize = 20, figsize=(20,6), dpi=300, y_2nd_label=None):
         """Plots the start and end date of analyte readings for differnt locations/sensors/wells with colored concentration reading.
 
@@ -1990,8 +1990,8 @@ class PylenmDataFactory(object):
             x_max_lim (int, optional): x axis ending point. Defaults to None.
             y_min_date (str, optional): y axis starting date. Defaults to None.
             y_max_date (str, optional): y axis ending date. Defaults to None.
-            sort_by_distance (bool, optional): flag to sort by distance from basin center. Defaults to True.
-            basin_coordinate (list, optional): Easting, Nothing coordinate of basin center. Defaults to [436642.70,3681927.09].
+            sort_by_distance (bool, optional): flag to sort by distance from source center. Defaults to True.
+            source_coordinate (list, optional): Easting, Northing coordinate of source center. Defaults to [436642.70,3681927.09].
             log_transform (bool, optional): flag to toggle log base 10 transformation. Defaults to False.
             cmap (cmap, optional): color map for plotting. Defaults to mpl.cm.rainbow.
             drop_cols (list, optional): columns, usually wells, to exclude. Defaults to [].
@@ -2032,9 +2032,9 @@ class PylenmDataFactory(object):
             UTM_x, UTM_y = transformer.transform(well_info.LATITUDE, well_info.LONGITUDE)
             X = np.vstack((UTM_x,UTM_y)).T
             well_info = pd.DataFrame(X, index=list(well_info.index),columns=['Easting', 'Northing'])
-            well_info = self.add_dist_to_basin(well_info, basin_coordinate=basin_coordinate)
+            well_info = self.add_dist_to_source(well_info, source_coordinate=source_coordinate)
             if(sort_by_distance):
-                well_info.sort_values(by=['dist_to_basin'], ascending = True, inplace=True)
+                well_info.sort_values(by=['dist_to_source'], ascending = True, inplace=True)
             dt = dt[well_info.index]
         except:
             pass
@@ -2422,18 +2422,18 @@ class PylenmDataFactory(object):
         """
         return sqrt(((p1[0]-p2[0])**2)+((p1[1]-p2[1])**2))
 
-    def add_dist_to_basin(self, XX, basin_coordinate=[436642.70,3681927.09], col_name='dist_to_basin'):
-        """adds column to data with the distance of a record to the basin coordinate
+    def add_dist_to_source(self, XX, source_coordinate=[436642.70,3681927.09], col_name='dist_to_source'):
+        """adds column to data with the distance of a record to the source coordinate
 
         Args:
             XX (pd.DataFrame): data with coordinate information
-            basin_coordinate (list, optional): basin coordinate. Defaults to [436642.70,3681927.09].
-            col_name (str, optional): name to assign new column. Defaults to 'dist_to_basin'.
+            source_coordinate (list, optional): source coordinate. Defaults to [436642.70,3681927.09].
+            col_name (str, optional): name to assign new column. Defaults to 'dist_to_source'.
 
         Returns:
             pd.DataFrame: returns original data with additional column with the distance.
         """
-        x1,y1 = basin_coordinate
+        x1,y1 = source_coordinate
         distances = []
         for i in range(XX.shape[0]):
             x2,y2 = XX.iloc[i][0], XX.iloc[i][1]
