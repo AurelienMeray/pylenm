@@ -1,4 +1,8 @@
 Welcome to Pylenm's documentation!
+
+.. image:: ./TOC.png
+  :width: 400
+  :alt: Pylenm Conceptual Diagram
 ==============================================
 
 .. toctree::
