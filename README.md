@@ -13,6 +13,13 @@ The latest package can be downloaded from: https://pypi.org/project/pylenm/
 More information on the project can be found here: https://altemis.lbl.gov/ai-for-soil-and-groundwater-contamination/ 
 
 --
+# Journal Publication:
+## [PyLEnM: A Machine Learning Framework for Long-Term Groundwater Contamination Monitoring Strategies](https://pubs.acs.org/doi/full/10.1021/acs.est.1c07440)
+Aurelien O. Meray, Savannah Sturla, Masudur R. Siddiquee, Rebecca Serata, Sebastian Uhlemann, Hansell Gonzalez-Raymat, Miles Denham, Himanshu Upadhyay, Leonel E. Lagos, Carol Eddy-Dilek, and Haruko M. Wainwright
+Environmental Science & Technology 2022 56 (9), 5973-5983
+DOI: 10.1021/acs.est.1c07440
+
+--
 
 # Demonstration notebooks:
 [1 – Basics](https://colab.research.google.com/github/ALTEMIS-DOE/pylenm/blob/master/notebooks/1%29%20pyLEnM%20-%20Basics.ipynb)<br>
