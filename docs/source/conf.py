@@ -57,7 +57,10 @@ exclude_patterns = []
 #
 # html_theme = 'alabaster'
 # html_theme = "sphinx_rtd_theme"
-html_theme = "agogo"
+# html_theme = "agogo"
+# html_theme = "blue"
+# html_theme_path = ["."]
+html_theme = 'piccolo_theme'
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
