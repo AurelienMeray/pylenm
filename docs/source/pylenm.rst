@@ -1,8 +1,5 @@
-Pylenm package
+Function description
 ==============
-
-Pylenm contents
----------------
 
 .. automodule:: pylenm
    :members:

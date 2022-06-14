@@ -1,3 +1,3 @@
-__version__ = '0.1.13.13'
+__version__ = '0.2'
 
 from .pylenm import PylenmDataFactory

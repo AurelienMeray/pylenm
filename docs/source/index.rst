@@ -1,4 +1,7 @@
+*****
 Welcome to Pylenm's documentation!
+*****
+
 
 
 .. image:: ./TOC.png
@@ -6,9 +9,11 @@ Welcome to Pylenm's documentation!
   :alt: Pylenm Conceptual Diagram
 ==============================================
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+==============================================
    
    introduction
    usage

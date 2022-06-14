@@ -31,13 +31,13 @@ from sklearn.metrics import mean_squared_error
 import scipy.stats as stats
 from dateutil.relativedelta import relativedelta
 import warnings
-# warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore")
 from pyproj import Proj, Transformer
 from ipyleaflet import (Map, basemaps, WidgetControl, GeoJSON, 
                         LayersControl, Icon, Marker,FullScreenControl,
                         CircleMarker, Popup, AwesomeIcon) 
 from ipywidgets import HTML
-# plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.family"] = "Times New Roman"
 
 class PylenmDataFactory(object):
     """Class object that initilaizes Pylenm given data.
