@@ -1,4 +1,4 @@
-Function description
+Function descriptions
 ==============
 
 .. automodule:: pylenm
