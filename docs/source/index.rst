@@ -1,6 +1,6 @@
-*****
+**********************************
 Welcome to Pylenm's documentation!
-*****
+**********************************
 
 
 
@@ -10,13 +10,15 @@ Welcome to Pylenm's documentation!
 ==============================================
 
 
+Contents
+==================
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
    
    introduction
    usage
    pylenm
+   notebooks
 
 
 

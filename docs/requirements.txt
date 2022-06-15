@@ -100,6 +100,7 @@ monotonic==1.5
 multidict==5.2.0
 mypy-extensions==0.4.3
 myst-parser==0.17.0
+nbsphinx==0.8.9
 nbclassic==0.2.6
 nbclient==0.5.3
 nbconvert==6.0.7
@@ -162,6 +163,7 @@ sklearn==0.0
 sniffio==1.2.0
 snowballstemmer==2.2.0
 snuggs==1.4.7
+sphinx-gallery==0.10.1
 sphinx-rtd-theme==1.0.0
 sphinx==4.5.0
 sphinxcontrib-applehelp==1.0.2

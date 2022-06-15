@@ -10,20 +10,29 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+import io
 import os
 import sys
+import re
+from tabnanny import verbose
+
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../pylenm/'))
 
 
+# from pylenm/pylenm/__init__.py import version
+
 # -- Project information -----------------------------------------------------
 
-project = 'pylenm'
+project = 'Pylenm'
 copyright = '2022, Aurelien Meray'
 author = 'Aurelien Meray'
 
+
+
 # The full version, including alpha/beta/rc tags
 release = open('../../VERSION.txt').read().strip()
+# release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -35,10 +44,17 @@ extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',        # to automatically build documentation from docstrings
     'sphinxcontrib.napoleon',
+    'nbsphinx',
+    'sphinx_gallery.load_style',
     # 'sphinx.ext.napoleon',       # to build from google style docstrings
 ]
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+
+nbsphinx_thumbnails = {
+    'notebooks/1) pyLEnM - Basics': 'notebook_thumbnails/tester.png',
+    'notebooks/2) pyLEnM - Unsupervised Learning': 'notebook_thumbnails/tester.png'
+}
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,11 +78,14 @@ exclude_patterns = []
 # html_theme_path = ["."]
 html_theme = 'piccolo_theme'
 
+html_theme_options = {
+    "show_theme_credit": False
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 
 # -- Miscelleneous -----------------------------------------------------------

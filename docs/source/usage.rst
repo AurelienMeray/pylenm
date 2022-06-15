@@ -13,7 +13,7 @@ To use Pylenm, first install it using pip:
    (.venv) $ pip install pylenm
 
 General import statement
-----------------
+------------------------
 
 At the moment, Pylenm only has one module: ``PylenmDataFactory``. 
 
@@ -21,7 +21,7 @@ You can import it as follow:
 
 >>> import pylenm
 >>> pylenm.__version__
-'0.1.13.13'
+'0.2'
 
 You can start using pylenm by passing your dataset into ``PylenmDataFactory``:
 
