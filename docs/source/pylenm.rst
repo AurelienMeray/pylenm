@@ -1,5 +1,5 @@
 Function descriptions
-==============
+=====================
 
 .. automodule:: pylenm
    :members:

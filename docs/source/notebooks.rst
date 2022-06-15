@@ -2,9 +2,6 @@ Example Notebooks
 ==================
 
 .. nbgallery::
-    :caption: This is a thumbnail gallery: 
-    :name: rst-gallery
-    :glob:
     :reversed:
 
     notebooks/5) pyLEnM - Proxy Estimation (SC~Tritium)

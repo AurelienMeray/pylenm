@@ -7,7 +7,6 @@ Welcome to Pylenm's documentation!
 .. image:: ./TOC.png
   :width: 600
   :alt: Pylenm Conceptual Diagram
-==============================================
 
 
 Contents

@@ -15,7 +15,7 @@ import os
 import sys
 import re
 from tabnanny import verbose
-
+print(os.getcwd())
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../pylenm/'))
 
@@ -27,12 +27,11 @@ sys.path.insert(0, os.path.abspath('../../pylenm/'))
 project = 'Pylenm'
 copyright = '2022, Aurelien Meray'
 author = 'Aurelien Meray'
+sys.path.insert(0, os.path.abspath('../../pylenm/pylenm'))
 
+from version import __version__
 
-
-# The full version, including alpha/beta/rc tags
-release = open('../../VERSION.txt').read().strip()
-# release = version
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -51,10 +50,10 @@ extensions = [
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
-nbsphinx_thumbnails = {
-    'notebooks/1) pyLEnM - Basics': 'notebook_thumbnails/tester.png',
-    'notebooks/2) pyLEnM - Unsupervised Learning': 'notebook_thumbnails/tester.png'
-}
+# nbsphinx_thumbnails = {
+#     'notebooks/1) pyLEnM - Basics': 'notebook_thumbnails/tester.png',
+#     'notebooks/2) pyLEnM - Unsupervised Learning': 'notebook_thumbnails/tester.png'
+# }
 
 
 # Add any paths that contain templates here, relative to this directory.
