@@ -22,11 +22,11 @@ def version(path):
 
 
 setup(name='pylenm',
-      version=version('pylenm/__init__.py'),
+      version=version('pylenm/version.py'),
       description='This package aims to provide machine learning (ML) functions for performing comprehensive soil and groundwater data analysis, and for supporting the establishment of effective long-term monitoring.',
       long_description=long_description,
       long_description_content_type="text/markdown",
-      url='https://github.com/AurelienMeray/pylenm',
+      url='https://github.com/ALTEMIS-DOE/pylenm',
       author='Aurelien Meray',
       author_email='aurelien.meray@gmail.com',
       license='MIT',
@@ -36,7 +36,6 @@ setup(name='pylenm',
         'pandas>=1.2.3',
         'openpyxl>=2.6.0',
         'pyproj>=3.0.1',
-        'elevation',
         'richdem',
         'rasterio',
         'numpy',
@@ -56,4 +55,10 @@ setup(name='pylenm',
         "Operating System :: OS Independent",
         ],
       python_requires='>=3.6',
-      zip_safe=False)
+      zip_safe=False,
+      project_urls={
+        "Bug Tracker": "https://github.com/ALTEMIS-DOE/pylenm/issues",
+        "Documentation": "https://pylenm.readthedocs.io/",
+        "Source": "https://github.com/ALTEMIS-DOE/pylenm",
+      },
+      )
