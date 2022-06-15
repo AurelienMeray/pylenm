@@ -121,7 +121,7 @@ pexpect==4.8.0
 piccolo-theme==0.11.1
 pickleshare==0.7.5
 pillow==8.1.2
-pip==21.0.1
+pip==21.1
 platformdirs==2.4.0
 plotly==4.14.3
 pockets==0.9.1
