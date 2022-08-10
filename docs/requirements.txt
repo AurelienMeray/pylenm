@@ -103,7 +103,7 @@ myst-parser==0.17.0
 nbsphinx==0.8.9
 nbclassic==0.2.6
 nbclient==0.5.3
-nbconvert==6.0.7
+nbconvert==6.3.0
 nbformat==5.1.2
 nest-asyncio==1.5.1
 nodeenv==1.6.0
