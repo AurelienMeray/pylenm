@@ -189,7 +189,7 @@ traitlets==5.0.5
 traittypes==0.2.1
 typing-extensions==4.0.1
 unicodecsv==0.14.1
-urllib3==1.26.4
+urllib3==1.26.5
 virtualenv==20.10.0
 wcwidth==0.2.5
 webargs==8.0.1
