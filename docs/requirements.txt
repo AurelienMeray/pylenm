@@ -33,7 +33,7 @@ cmdstanpy==0.9.5
 colorspacious==1.1.2
 convertdate==2.3.2
 crashtest==0.3.1
-cryptography==3.4.7
+cryptography==39.0.1
 cycler==0.10.0
 cython==0.29.26
 datapackage==1.15.2
